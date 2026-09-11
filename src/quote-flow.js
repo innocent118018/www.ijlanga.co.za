@@ -24,6 +24,7 @@ function renderQuoteForm() {
       <label>Full name<input name="name" required autocomplete="name" placeholder="Full name" /></label>
       <label>Email address<input name="email" type="email" required autocomplete="email" placeholder="you@example.com" /></label>
       <label>Phone number<input name="phone" autocomplete="tel" placeholder="Optional" /></label>
+      <label>Coupon code<input name="coupon_code" autocomplete="off" placeholder="Optional coupon code" /></label>
       <button class="primary full" type="submit">Submit Quote Request</button>
       <div id="quote-flow-status" class="shop-status" aria-live="polite"></div>
     </form>`;
@@ -41,6 +42,7 @@ function renderQuoteForm() {
       const { data, error } = await supabase.functions.invoke('create-quote', {
         body: {
           customer: { name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone') },
+          coupon_code: String(fd.get('coupon_code') || '').trim().toUpperCase() || null,
           items: pendingItems,
         },
       });
@@ -50,7 +52,8 @@ function renderQuoteForm() {
         <span class="eyebrow">QUOTE CREATED</span>
         <h2>${data.quote.quote_number}</h2>
         <p>Your quote request has been securely captured. We can now review it and convert it into an order.</p>
-        <div class="cart-total"><span>Estimated subtotal</span><strong>R ${Number(data.subtotal || 0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</strong></div>
+        ${Number(data.discount || 0) > 0 ? `<div class="cart-total"><span>Discount</span><strong>- R ${Number(data.discount).toLocaleString('en-ZA',{minimumFractionDigits:2})}</strong></div>` : ''}
+        <div class="cart-total"><span>Estimated subtotal excl. VAT</span><strong>R ${Number(data.subtotal || 0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</strong></div>
         <div style="display:grid;gap:10px;margin-top:18px">
           <a class="primary full" href="/portal.html">Open Client Portal</a>
           <button class="secondary full" id="quote-flow-done">Close</button>
