@@ -1,0 +1,18 @@
+name: Notification worker
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process pending email notifications
+        env:
+          WORKER_SECRET: ${{ secrets.NOTIFICATION_WORKER_SECRET }}
+        run: |
+          test -n "$WORKER_SECRET"
+          curl --fail-with-body -sS -X POST \
+            -H "x-worker-secret: $WORKER_SECRET" \
+            -H "Content-Type: application/json" \
+            "https://pyhcmceyhrulkwzedwgf.supabase.co/functions/v1/send-notifications"
