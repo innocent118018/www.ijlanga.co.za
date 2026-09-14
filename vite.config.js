@@ -5,7 +5,7 @@ const logoCss = `
 /* IJ-LANGA-BRAND-LOGO: official logo in header and footer */
 .brand-mark {
   background: #fff !important;
-  background-image: url('/logo.svg') !important;
+  background-image: url('/ijlanga-logo.svg') !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: contain !important;
