@@ -62,6 +62,19 @@ Every future service page should link back to the main services catalogue and to
 ## Local SEO
 Keep the business name, website, contact details and service area consistent across the website and legitimate business profiles. Build useful local references around Ermelo, Mpumalanga and South Africa without creating thin doorway pages for nearby towns.
 
+## Backlink plan
+Build backlinks through genuine business relationships and useful resources rather than bulk link packages or automated submissions.
+
+Priority sources:
+- Business and professional directories where IJ Langa Consulting is legitimately eligible to appear.
+- Local business/community organisations and relevant chambers or associations.
+- Supplier and professional profiles that the business actually owns or participates in.
+- Partnerships with legitimate local business networks, entrepreneurship programmes and training initiatives.
+- Original guides and checklists that other South African small-business sites can reference naturally.
+- Case studies and client success stories where the client has given permission and the claims can be substantiated.
+
+For each outreach opportunity, record the referring domain, target URL, anchor/context, date contacted, status and whether the link is live. Do not pay for or create large numbers of low-quality, irrelevant links.
+
 ## Content quality rules
 - Write for customers first, not search engines.
 - Do not publish near-duplicate service pages for different towns.
