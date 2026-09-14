@@ -1,0 +1,6 @@
+# IJ Langa Consulting robots policy
+# Public marketing content is crawlable. Authenticated/private pages use noindex and are not included in the sitemap.
+User-agent: *
+Allow: /
+
+Sitemap: https://www.ijlanga.co.za/sitemap.xml
