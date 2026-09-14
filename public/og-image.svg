@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">IJ Langa Consulting</title>
+  <desc id="desc">Accounting, taxation, compliance and business consulting in South Africa.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b2239"/>
+      <stop offset="1" stop-color="#164b72"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#f7f9fb"/>
+  <rect x="34" y="34" width="1132" height="562" rx="34" fill="url(#bg)"/>
+  <circle cx="1000" cy="90" r="180" fill="none" stroke="#c69b4a" stroke-opacity=".28" stroke-width="2"/>
+  <circle cx="1080" cy="520" r="240" fill="none" stroke="#c69b4a" stroke-opacity=".18" stroke-width="2"/>
+  <rect x="90" y="105" width="100" height="100" rx="22" fill="#fff"/>
+  <text x="140" y="171" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="800" fill="#0b2239">IJ</text>
+  <text x="90" y="282" font-family="Arial,Helvetica,sans-serif" font-size="54" font-weight="800" fill="#fff" letter-spacing="5">IJ LANGA</text>
+  <text x="90" y="330" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" fill="#e2bd70" letter-spacing="8">CONSULTING</text>
+  <text x="90" y="405" font-family="Arial,Helvetica,sans-serif" font-size="38" font-weight="700" fill="#fff">Accounting you can trust.</text>
+  <text x="90" y="456" font-family="Arial,Helvetica,sans-serif" font-size="22" fill="#dce7f0">Accounting • Taxation • Compliance • Business Consulting</text>
+  <text x="90" y="535" font-family="Arial,Helvetica,sans-serif" font-size="19" fill="#a9bfd0">www.ijlanga.co.za</text>
+</svg>
