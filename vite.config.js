@@ -16,9 +16,7 @@ const logoCss = `
   font-size: 0 !important;
   overflow: hidden !important;
 }
-.footer-brand .brand-mark {
-  background-color: rgba(255,255,255,.96) !important;
-}
+.footer-brand .brand-mark { background-color: rgba(255,255,255,.96) !important; }
 @media (max-width: 760px) {
   .brand { min-width: 0 !important; }
   .brand-mark { width: 40px !important; height: 40px !important; }
@@ -35,5 +33,22 @@ export default defineConfig({
         return null;
       }
     }
-  ]
+  ],
+  build: {
+    target: 'es2020',
+    minify: 'esbuild',
+    cssMinify: 'esbuild',
+    sourcemap: false,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-supabase': ['@supabase/supabase-js']
+        }
+      }
+    }
+  }
 });
