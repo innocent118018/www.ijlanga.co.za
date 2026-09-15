@@ -1,4 +1,4 @@
-/* Technical SEO, accessibility and performance layer. */
+/* Technical SEO, accessibility, performance and responsive layer. */
 html{scroll-padding-top:112px}
 body{overflow-x:hidden}
 img,svg{max-width:100%}
@@ -6,6 +6,10 @@ button,a,input,textarea{touch-action:manipulation}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid rgba(198,155,74,.65);outline-offset:3px}
 section[id],footer[id]{scroll-margin-top:112px}
 .about,.highlights,.process,.shop,.reviews-section,.location-section,.cta,footer{content-visibility:auto;contain-intrinsic-size:1px 700px}
+.hero-benefits{list-style:none;margin:24px 0 0;padding:0;display:grid;gap:9px;color:#526476;font-size:13px;line-height:1.5}
+.hero-benefits li,.about-copy ul li{position:relative;padding-left:24px}
+.hero-benefits li::before,.about-copy ul li::before{content:'✓';position:absolute;left:0;top:0;font-weight:800;color:var(--gold)}
+.about-copy ul{list-style:none;margin:20px 0 24px;padding:0;display:grid;gap:9px;color:#526476;font-size:13px;line-height:1.5}
 .reviews-section{padding:105px 6%;background:#fff}
 .reviews-section .section-intro{max-width:720px}
 .reviews-actions{max-width:1240px;margin:0 auto 28px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
@@ -30,5 +34,6 @@ section[id],footer[id]{scroll-margin-top:112px}
 .footer-main .map-link:hover{color:#fff}
 .brand-mark{background-image:url('/ijlanga-logo.svg') !important}
 @media(max-width:900px){.reviews-grid{grid-template-columns:1fr 1fr}.location-card{align-items:flex-start;flex-direction:column}.location-actions{width:100%}}
-@media(max-width:600px){.reviews-section{padding:80px 5%}.reviews-grid{grid-template-columns:1fr}.review-stars{font-size:12px}.location-section{padding:70px 5%}.location-card{padding:22px}.location-actions>*{flex:1;justify-content:center}.site-header{backdrop-filter:none}}
+@media(max-width:760px){.hero-benefits{margin-top:18px}.nav-shell{gap:10px}.nav-actions{gap:6px}.portal-btn{padding-inline:10px}}
+@media(max-width:600px){.reviews-section{padding:80px 5%}.reviews-grid{grid-template-columns:1fr}.review-stars{font-size:12px}.location-section{padding:70px 5%}.location-card{padding:22px}.location-actions{width:100%}.location-actions>*{flex:1;justify-content:center}.site-header{backdrop-filter:none}.hero-benefits,.about-copy ul{font-size:12px}.cta{padding-inline:5%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.highlight,.product-card{transition:none}.highlight:hover,.product-card:hover{transform:none}}
