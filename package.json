@@ -12,5 +12,7 @@
     "lucide-react":"latest",
     "@supabase/supabase-js":"latest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "esbuild":"latest"
+  }
 }
