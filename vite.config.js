@@ -30,6 +30,13 @@ function manualChunks(id) {
   return undefined;
 }
 
+function publicHeaderLinks(code,id){
+  if(!id.endsWith('/src/main.jsx')) return null;
+  const marker='<a href="#shop">Services and prices</a>';
+  if(!code.includes(marker)||code.includes('/shelf-companies.html')) return null;
+  return code.replace(marker,`${marker}<a href="/shelf-companies.html">Shelf companies</a>`);
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -38,6 +45,13 @@ export default defineConfig({
       transform(code, id) {
         if (id.endsWith('/src/styles.css')) return `${code}\n${logoCss}`;
         return null;
+      }
+    },
+    {
+      name: 'ijlanga-public-header-links',
+      transform(code,id){
+        const updated=publicHeaderLinks(code,id);
+        return updated ? {code:updated,map:null}:null;
       }
     }
   ],
