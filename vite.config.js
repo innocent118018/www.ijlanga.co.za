@@ -39,19 +39,20 @@ function publicHeaderLinks(code,id){
 
 export default defineConfig({
   plugins: [
+    {
+      name: 'ijlanga-public-header-links',
+      enforce: 'pre',
+      transform(code,id){
+        const updated=publicHeaderLinks(code,id);
+        return updated ? {code:updated,map:null}:null;
+      }
+    },
     react(),
     {
       name: 'ijlanga-logo-branding',
       transform(code, id) {
         if (id.endsWith('/src/styles.css')) return `${code}\n${logoCss}`;
         return null;
-      }
-    },
-    {
-      name: 'ijlanga-public-header-links',
-      transform(code,id){
-        const updated=publicHeaderLinks(code,id);
-        return updated ? {code:updated,map:null}:null;
       }
     }
   ],
