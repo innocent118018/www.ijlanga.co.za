@@ -23,6 +23,13 @@ const logoCss = `
 }
 `;
 
+function manualChunks(id) {
+  if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) return 'vendor-react';
+  if (id.includes('/node_modules/lucide-react/')) return 'vendor-icons';
+  if (id.includes('/node_modules/@supabase/supabase-js/')) return 'vendor-supabase';
+  return undefined;
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -42,13 +49,7 @@ export default defineConfig({
     reportCompressedSize: true,
     chunkSizeWarningLimit: 700,
     rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-icons': ['lucide-react'],
-          'vendor-supabase': ['@supabase/supabase-js']
-        }
-      }
+      output: { manualChunks }
     }
   }
 });
