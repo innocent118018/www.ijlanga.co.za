@@ -1,27 +1,14 @@
 import React,{useEffect,useMemo,useState}from'react';
 import{createRoot}from'react-dom/client';
 import{Users,BriefcaseBusiness,UserRound,RefreshCw,LogOut,CheckCircle2,Clock3,Plus,ArrowLeft,Save,Building2,WalletCards,ClipboardList,ShieldCheck}from'lucide-react';
-import{supabase}from'./lib/supabase';
+import{supabase}from'./lib/supabase';import AccountAuth from'./account-auth.jsx';
 import'./role-dashboard.css';
 
 const money=n=>`R ${Number(n||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}`;
 const date=d=>d?new Date(d).toLocaleDateString('en-ZA',{dateStyle:'medium'}):'—';
 const roleLabel={employer:'Employer',employee:'Employee',reseller:'Reseller'};
 
-function SignIn(){
- const[email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(''),[mode,setMode]=useState('signin'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
- async function submit(e){e.preventDefault();setBusy(true);setError('');setMessage('');try{
-  if(mode==='signup'){
-   const{data,error:e2}=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{full_name:name.trim()},emailRedirectTo:`${window.location.origin}/dashboard.html`}});if(e2)throw e2;
-   if(data?.session) await ensureProfile(data.session.user);
-   setMessage('Account created. Check your email if confirmation is required, then sign in.');
-  }else{
-   const{data,error:e2}=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password});if(e2)throw e2;await routeUser(data.session);
-  }
- }catch(e){setError(e.message||'Authentication failed.')}finally{setBusy(false)}}
- async function magic(){setBusy(true);setError('');setMessage('');try{const{error:e}=await supabase.auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:`${window.location.origin}/dashboard.html`}});if(e)throw e;setMessage('Secure sign-in link sent. Check your email.')}catch(e){setError(e.message||'Could not send sign-in link.')}finally{setBusy(false)}}
- return <main className="role-auth"><div className="role-auth-card"><a className="role-back" href="/"><ArrowLeft size={16}/> Website</a><img src="/ijlanga-logo.svg" alt="IJ Langa Consulting logo" className="role-logo"/><span className="role-eyebrow">SECURE ACCOUNT ACCESS</span><h1>{mode==='signup'?'Create client account':'Sign in to your dashboard'}</h1><p>{mode==='signup'?'Client accounts can be created here. Employer, employee and reseller access is assigned by IJ Langa Consulting.':'Use your Supabase Auth account. Your dashboard is selected automatically from your assigned role.'}</p><form onSubmit={submit}>{mode==='signup'&&<label>Full name<input value={name} onChange={e=>setName(e.target.value)} required autoComplete="name"/></label>}<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} autoComplete={mode==='signup'?'new-password':'current-password'}/></label>{error&&<div className="role-error">{error}</div>}{message&&<div className="role-message">{message}</div>}<button className="role-primary" disabled={busy}>{busy?'Please wait…':mode==='signup'?'Create account':'Sign in'}</button></form>{mode==='signin'&&<button className="role-secondary" disabled={busy||!email.trim()} onClick={magic}>Email me a secure sign-in link</button>}<div className="role-switch">{mode==='signin'?<>Need a client account? <button onClick={()=>{setMode('signup');setError('');setMessage('')}}>Create one</button></>:<>Already registered? <button onClick={()=>{setMode('signin');setError('');setMessage('')}}>Sign in</button></>}</div></div></main>;
-}
+function SignIn(){return <AccountAuth embedded/>}
 
 async function ensureProfile(user){const{data:p}=await supabase.from('profiles').select('id,email,full_name,role,phone,job_title,department,is_active,employer_id,organization_name').eq('id',user.id).maybeSingle();if(p)return p;const{data:newProfile,error}=await supabase.from('profiles').insert({id:user.id,email:user.email,full_name:user.user_metadata?.full_name||user.email?.split('@')[0]||'User',role:'client',is_active:true}).select().single();if(error)throw error;return newProfile}
 async function routeUser(session){const p=await ensureProfile(session.user);if(!p.is_active)throw new Error('Your account is inactive. Please contact IJ Langa Consulting.');if(p.role==='admin')window.location.href='/admin.html';else if(p.role==='client')window.location.href='/portal.html';else window.history.replaceState({},'',`/dashboard.html?role=${p.role}`);}
