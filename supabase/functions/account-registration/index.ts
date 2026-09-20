@@ -292,14 +292,7 @@ Deno.serve(async (req) => {
         console.error("Administrator override email could not be prepared:", overrideError);
       }
 
-      let overrideResult: { emailed: boolean } | null = null;
-    try {
-      overrideResult = await issueAdminOverride(admin, requestId, createdUser.id, full_name, email);
-    } catch (overrideError) {
-      console.error("Administrator override email could not be prepared:", overrideError);
-    }
-
-    const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
+      const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
       const recipients = admins.data?.length ? admins.data : [{ id: null, email: "info@ijlanga.co.za" }];
       for (const a of recipients) {
         await admin.from("notifications").insert({
@@ -413,6 +406,13 @@ Deno.serve(async (req) => {
       await admin.from("profiles").delete().eq("id", createdUser.id);
       await admin.auth.admin.deleteUser(createdUser.id);
       throw reqError;
+    }
+
+    let overrideResult: { emailed: boolean } | null = null;
+    try {
+      overrideResult = await issueAdminOverride(admin, requestId, createdUser.id, full_name, email);
+    } catch (overrideError) {
+      console.error("Administrator override email could not be prepared:", overrideError);
     }
 
     const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
