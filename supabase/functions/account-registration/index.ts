@@ -39,6 +39,30 @@ function authEmailHtml(email: string, link: string, token: string) {
   return `<html><body style="margin:0;background:#f4f7f9;font-family:Arial,sans-serif;color:#10243a"><div style="max-width:620px;margin:30px auto;background:#fff;border:1px solid #dfe6ed;border-radius:18px;overflow:hidden"><div style="background:#0b2239;padding:26px 30px;color:#fff"><strong style="font-size:18px;letter-spacing:2px">IJ LANGA CONSULTING</strong><div style="font-size:11px;color:#c69b4a;margin-top:6px">ACCOUNTING YOU CAN TRUST</div></div><div style="padding:34px"><h1 style="font-size:25px;margin:0 0 14px;color:#0b2239">Confirm your IJ Langa Consulting account</h1><p style="line-height:1.7;color:#637487">Your account has been created. Please confirm your email address before signing in.</p><p style="text-align:center;margin:30px 0"><a href="${link}" style="display:inline-block;background:#0b2239;color:#fff;text-decoration:none;padding:14px 22px;border-radius:9px;font-weight:bold">Confirm email</a></p><p style="font-size:12px;color:#81909e;line-height:1.6">If the button does not work, copy and paste this link into your browser:<br><span style="word-break:break-all">${link}</span></p><p style="font-size:13px;color:#637487">Your one-time verification code: <strong style="color:#0b2239">${token}</strong></p><p style="font-size:11px;color:#9aa7b3;margin-top:28px">This email was sent to ${email}. If you did not request this action, you can safely ignore this message.</p></div></div></body></html>`;
 }
 
+async function issueAdminOverride(admin: any, requestId: string, userId: string, name: string, userEmail: string) {
+  const rawToken = crypto.randomUUID() + "." + crypto.randomUUID();
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawToken));
+  const tokenHash = Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const { error: tokenError } = await admin.from("admin_account_overrides").insert({ request_id: requestId, user_id: userId, token_hash: tokenHash });
+  if (tokenError) throw new Error("Could not create the administrator verification override: " + tokenError.message);
+  const link = SITE_URL + "/admin-verification.html?token=" + encodeURIComponent(rawToken);
+  const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
+  const recipients = admins.data?.length ? admins.data : [{ id: null, email: "info@ijlanga.co.za" }];
+  const key = Deno.env.get("RESEND_API_KEY") || Deno.env.get("resend");
+  const from = Deno.env.get("RESEND_FROM") || "IJ Langa Consulting <no-reply@ijlanga.co.za>";
+  if (!key) return { emailed: false };
+  const html = `<html><body style="margin:0;background:#f4f7f9;font-family:Arial,sans-serif;color:#10243a"><div style="max-width:650px;margin:30px auto;background:#fff;border:1px solid #dfe6ed;border-radius:18px;overflow:hidden"><div style="background:#0b2239;padding:26px 30px;color:#fff"><strong style="font-size:18px;letter-spacing:2px">IJ LANGA CONSULTING</strong><div style="font-size:11px;color:#c69b4a;margin-top:6px">ADMINISTRATOR VERIFICATION</div></div><div style="padding:34px"><h1 style="color:#0b2239">Account verification requires administrator action</h1><p style="line-height:1.7;color:#637487">Registration: <strong>${name}</strong> (${userEmail}).</p><p style="line-height:1.7;color:#637487">Use the secure administrator link to bypass email verification and activate the account. The link expires in 48 hours and can only be used once.</p><p style="text-align:center;margin:30px 0"><a href="${link}" style="display:inline-block;background:#0b2239;color:#fff;text-decoration:none;padding:14px 22px;border-radius:9px;font-weight:bold">Verify &amp; Activate Account</a></p><p style="font-size:12px;color:#81909e;line-height:1.6;word-break:break-all">${link}</p><p style="font-size:11px;color:#9aa7b3;margin-top:28px">For authorised IJ Langa administrators only.</p></div></div></body></html>`;
+  let sent = 0;
+  for (const a of recipients) {
+    if (!a.email) continue;
+    try {
+      const response = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"}, body:JSON.stringify({from,to:[a.email],subject:"Administrator action required: verify and activate account",html,text:"Administrator action required for "+name+" ("+userEmail+"). Verify and activate: "+link+"\n\nThis link expires in 48 hours and can only be used once."}) });
+      if (response.ok) sent++;
+    } catch (_) {}
+  }
+  return { emailed: sent > 0 };
+}
+
 async function sendSignupConfirmation(admin: any, email: string, password: string, metadata: Record<string,unknown>) {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "signup",
@@ -215,6 +239,12 @@ Deno.serve(async (req) => {
       });
       if (reqError) throw reqError;
 
+      try {
+        await issueAdminOverride(admin, requestId, existing.id, full_name, email);
+      } catch (overrideError) {
+        console.error("Administrator override email could not be prepared:", overrideError);
+      }
+
       return json({
         ok: true,
         existing_account: false,
@@ -256,7 +286,20 @@ Deno.serve(async (req) => {
         throw reqError;
       }
 
-      const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
+      try {
+        await issueAdminOverride(admin, requestId, existing.id, first_name + " " + last_name + " " + surname, existing.email || email);
+      } catch (overrideError) {
+        console.error("Administrator override email could not be prepared:", overrideError);
+      }
+
+      let overrideResult: { emailed: boolean } | null = null;
+    try {
+      overrideResult = await issueAdminOverride(admin, requestId, createdUser.id, full_name, email);
+    } catch (overrideError) {
+      console.error("Administrator override email could not be prepared:", overrideError);
+    }
+
+    const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
       const recipients = admins.data?.length ? admins.data : [{ id: null, email: "info@ijlanga.co.za" }];
       for (const a of recipients) {
         await admin.from("notifications").insert({
@@ -278,6 +321,7 @@ Deno.serve(async (req) => {
         request_id: requestId,
         message: "An existing account was found. Your verification documents have been submitted for administrator review. If you know the registered email address, you can use Forgot password to regain access.",
         reset_email: existing.email || null,
+        verification_url: AUTH_CONFIRM_URL + "?type=email&redirect_to=" + encodeURIComponent(DASHBOARD_URL),
       });
     }
 
@@ -314,20 +358,22 @@ Deno.serve(async (req) => {
     }
 
     const full_name = first_name + " " + last_name + " " + surname;
-    const { error: profileError } = await admin.from("profiles").insert({
+    const { error: profileError } = await admin.from("profiles").upsert({
       id: createdUser.id,
       email,
       full_name,
       first_name, last_name, surname,
       phone,
-      id_number,
+      id_number: id_number || null,
       company_registration_number: company_registration_number || null,
       role,
       employer_id: employer?.id || null,
       organization_name: employer?.organization_name || null,
       is_active: false,
       approval_status: "pending",
-    });
+      email_verified_at: null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
 
     if (profileError) {
       await admin.auth.admin.deleteUser(createdUser.id);
@@ -342,13 +388,13 @@ Deno.serve(async (req) => {
     } catch (e) {
       await admin.storage.from("account-verification").remove([idPath, addressPath]);
       await admin.from("profiles").delete().eq("id", createdUser.id);
-      await admin.auth.admin.deleteUser(created.user.id);
+      await admin.auth.admin.deleteUser(createdUser.id);
       throw e;
     }
 
     const { error: reqError } = await admin.from("account_access_requests").insert({
       id: requestId,
-      user_id: created.user.id,
+      user_id: createdUser.id,
       email,
       first_name, last_name, surname, phone, id_number,
       company_registration_number: company_registration_number || null,
@@ -364,8 +410,8 @@ Deno.serve(async (req) => {
 
     if (reqError) {
       await admin.storage.from("account-verification").remove([idPath, addressPath]);
-      await admin.from("profiles").delete().eq("id", created.user.id);
-      await admin.auth.admin.deleteUser(created.user.id);
+      await admin.from("profiles").delete().eq("id", createdUser.id);
+      await admin.auth.admin.deleteUser(createdUser.id);
       throw reqError;
     }
 
@@ -407,9 +453,11 @@ Deno.serve(async (req) => {
       employee_match: Boolean(employer),
       request_id: requestId,
       role,
+      admin_override_email_sent: Boolean(overrideResult?.emailed),
+      verification_url: AUTH_CONFIRM_URL + "?type=email&redirect_to=" + encodeURIComponent(DASHBOARD_URL),
       message: employer
-        ? "Account created as Employee. Your employer and IJ Langa administrator must approve the account before you can sign in."
-        : "Account created. IJ Langa Consulting must approve your verification documents before you can sign in.",
+        ? "Account created as Employee. Check your email to verify it. Your employer and IJ Langa administrator must approve the account before normal sign-in is available."
+        : "Account created. Check your email to verify it. IJ Langa Consulting must approve your verification documents before normal sign-in is available.",
     });
   } catch (e) {
     return json({ error: e?.message || "Unable to process account registration." }, 500);
