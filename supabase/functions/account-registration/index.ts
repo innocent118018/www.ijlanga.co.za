@@ -62,12 +62,12 @@ Deno.serve(async (req) => {
     }
 
     const { data: existingById } = await admin.from("profiles")
-      .select("id,email,full_name,role,employer_id,approval_status")
+      .select("id,email,full_name,role,employer_id,approval_status,first_name,last_name,surname,phone,id_number,company_registration_number,is_active")
       .eq("id_number", id_number)
       .maybeSingle();
 
     const { data: existingByCompany } = company_registration_number
-      ? await admin.from("profiles").select("id,email,full_name,role,employer_id,approval_status")
+      ? await admin.from("profiles").select("id,email,full_name,role,employer_id,approval_status,first_name,last_name,surname,phone,id_number,company_registration_number,is_active")
           .eq("company_registration_number", company_registration_number).maybeSingle()
       : { data: null };
 
@@ -77,6 +77,108 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const existing = existingById || existingByCompany || existingByEmail;
+
+    // Repair accounts that were created by an earlier/incomplete registration
+    // flow but never received the applicant's registration details.
+    const incompleteExisting = existing &&
+      !existing.full_name &&
+      !existing.first_name &&
+      !existing.last_name &&
+      !existing.surname &&
+      !existing.phone &&
+      !existing.id_number &&
+      !existing.company_registration_number;
+
+    if (incompleteExisting) {
+      const full_name = first_name + " " + last_name + " " + surname;
+      const { error: updateAuthError } = await admin.auth.admin.updateUserById(existing.id, {
+        password,
+        phone,
+        email_confirm: false,
+        user_metadata: {
+          ...(existing.user_metadata || {}),
+          first_name,
+          last_name,
+          surname,
+          full_name,
+          phone,
+          id_number: id_number || null,
+          company_registration_number: company_registration_number || null,
+        },
+      });
+      if (updateAuthError) return json({ error: "The existing account could not be completed: " + updateAuthError.message }, 400);
+
+      const { data: employer } = await admin.from("profiles")
+        .select("id,email,full_name,organization_name")
+        .eq("role","employer")
+        .eq("is_active",true)
+        .eq("id_number",id_number)
+        .maybeSingle();
+
+      const role = employer ? "employee" : "client";
+      const requestId = crypto.randomUUID();
+
+      const { error: profileUpdateError } = await admin.from("profiles").update({
+        email,
+        full_name,
+        first_name,
+        last_name,
+        surname,
+        phone,
+        id_number: id_number || null,
+        company_registration_number: company_registration_number || null,
+        role,
+        employer_id: employer?.id || null,
+        organization_name: employer?.organization_name || null,
+        is_active: false,
+        approval_status: "pending",
+        approved_at: null,
+        approved_by: null,
+        email_verified_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+
+      if (profileUpdateError) return json({ error: "The account profile could not be completed: " + profileUpdateError.message }, 500);
+
+      const idPath = existing.id + "/" + requestId + "-id-copy." + ext(idCopy);
+      const addressPath = existing.id + "/" + requestId + "-proof-of-address." + ext(proofOfAddress);
+      try {
+        await saveFile(admin, idCopy, idPath);
+        await saveFile(admin, proofOfAddress, addressPath);
+      } catch (e) {
+        await admin.storage.from("account-verification").remove([idPath, addressPath]);
+        throw e;
+      }
+
+      const { error: reqError } = await admin.from("account_access_requests").insert({
+        id: requestId,
+        user_id: existing.id,
+        email,
+        first_name,
+        last_name,
+        surname,
+        phone,
+        id_number: id_number || null,
+        company_registration_number: company_registration_number || null,
+        matched_employer_id: employer?.id || null,
+        request_type: "new_account",
+        status: "pending",
+        id_copy_path: idPath,
+        proof_of_address_path: addressPath,
+        notes: "Legacy incomplete account repaired and registration details attached. Awaiting email verification and required approval.",
+      });
+      if (reqError) throw reqError;
+
+      return json({
+        ok: true,
+        existing_account: false,
+        repaired_account: true,
+        employee_match: Boolean(employer),
+        request_id: requestId,
+        role,
+        message: "Your existing incomplete account has been completed with your registration details. Check your email to verify the account, then wait for the required approval before signing in.",
+      });
+    }
 
     if (existing) {
       const requestId = crypto.randomUUID();
@@ -95,7 +197,7 @@ Deno.serve(async (req) => {
         id: requestId,
         user_id: existing.id,
         email: existing.email || email,
-        first_name, last_name, surname, phone, id_number,
+        first_name, last_name, surname, phone, id_number: id_number || null,
         company_registration_number: company_registration_number || null,
         request_type: "existing_account_update",
         status: "pending",
@@ -146,13 +248,19 @@ Deno.serve(async (req) => {
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
-      // Public registration is gated by the IJ Langa approval workflow.
-      // The account itself is email-confirmed here so users are not blocked by
-      // a second confirmation step after their identity documents are submitted.
-      email_confirm: true,
+      // Email confirmation is required. The custom Send Email Hook sends
+      // the confirmation link to /auth-confirm.html, where token_hash is
+      // verified with Supabase before the user continues.
+      phone,
+      phone_confirm: false,
       user_metadata: {
-        first_name, last_name, surname,
+        first_name,
+        last_name,
+        surname,
         full_name: first_name + " " + last_name + " " + surname,
+        phone,
+        id_number: id_number || null,
+        company_registration_number: company_registration_number || null,
       },
     });
     if (createError || !created.user) return json({ error: createError?.message || "Could not create the account." }, 400);
