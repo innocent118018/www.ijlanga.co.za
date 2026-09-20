@@ -18,6 +18,8 @@ function App(){
     if(type==='email'||type==='signup'||type==='magiclink'){
       const{error:markError}=await supabase.rpc('mark_email_verified');
       if(markError)throw markError;
+      const{error:syncError}=await supabase.functions.invoke('sync-auth-profile');
+      if(syncError)throw syncError;
     }
     setState('success');setMessage('Your account verification was successful. Redirecting…');
     setTimeout(()=>{window.location.href=target},800);
