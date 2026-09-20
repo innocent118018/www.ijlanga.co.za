@@ -24,9 +24,21 @@ export default function AccountAuth({onClose=false,embedded=false}){
  async function signIn(e){
   e.preventDefault();setBusy(true);clearMessages();
   try{
-   const{data,error:e2}=await supabase.auth.signInWithPassword({email:form.email.trim().toLowerCase(),password:form.password});
-   if(e2)throw e2;
+   const email=form.email.trim().toLowerCase();
+   const{data,error:e2}=await supabase.auth.signInWithPassword({email,password:form.password});
+   if(e2){
+    const msg=String(e2.message||'');
+    if(/email not confirmed/i.test(msg)) throw new Error('Your email address has not been confirmed yet. Use “Resend confirmation” below and then try again.');
+    throw e2;
+   }
    if(!data.session)throw new Error('Sign in could not be completed.');
+   const{data:profile,error:pe}=await supabase.from('profiles').select('role,is_active,approval_status').eq('id',data.user.id).maybeSingle();
+   if(pe)throw pe;
+   if(!profile)throw new Error('Your account profile has not been prepared yet. Please contact IJ Langa Consulting.');
+   if(profile.is_active===false){
+    await supabase.auth.signOut();
+    throw new Error(profile.approval_status==='pending'?'Your account is registered but still awaiting IJ Langa approval. You will be able to sign in after approval.':'Your account is currently inactive. Please contact IJ Langa Consulting.');
+   }
    window.location.href='/dashboard.html';
   }catch(e){setError(e.message||'Could not sign in.')}
   finally{setBusy(false)}
