@@ -31,6 +31,52 @@ async function saveFile(admin: any, file: File, path: string) {
   return path;
 }
 
+const SITE_URL = "https://www.ijlanga.co.za";
+const DASHBOARD_URL = SITE_URL + "/dashboard.html";
+const AUTH_CONFIRM_URL = SITE_URL + "/auth-confirm.html";
+
+function authEmailHtml(email: string, link: string, token: string) {
+  return `<html><body style="margin:0;background:#f4f7f9;font-family:Arial,sans-serif;color:#10243a"><div style="max-width:620px;margin:30px auto;background:#fff;border:1px solid #dfe6ed;border-radius:18px;overflow:hidden"><div style="background:#0b2239;padding:26px 30px;color:#fff"><strong style="font-size:18px;letter-spacing:2px">IJ LANGA CONSULTING</strong><div style="font-size:11px;color:#c69b4a;margin-top:6px">ACCOUNTING YOU CAN TRUST</div></div><div style="padding:34px"><h1 style="font-size:25px;margin:0 0 14px;color:#0b2239">Confirm your IJ Langa Consulting account</h1><p style="line-height:1.7;color:#637487">Your account has been created. Please confirm your email address before signing in.</p><p style="text-align:center;margin:30px 0"><a href="${link}" style="display:inline-block;background:#0b2239;color:#fff;text-decoration:none;padding:14px 22px;border-radius:9px;font-weight:bold">Confirm email</a></p><p style="font-size:12px;color:#81909e;line-height:1.6">If the button does not work, copy and paste this link into your browser:<br><span style="word-break:break-all">${link}</span></p><p style="font-size:13px;color:#637487">Your one-time verification code: <strong style="color:#0b2239">${token}</strong></p><p style="font-size:11px;color:#9aa7b3;margin-top:28px">This email was sent to ${email}. If you did not request this action, you can safely ignore this message.</p></div></div></body></html>`;
+}
+
+async function sendSignupConfirmation(admin: any, email: string, password: string, metadata: Record<string,unknown>) {
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "signup",
+    email,
+    password,
+    options: { data: metadata, redirectTo: DASHBOARD_URL },
+  });
+  if (error || !data?.properties?.hashed_token || !data?.user?.id) {
+    throw new Error("Could not generate the email verification link: " + (error?.message || "missing verification token"));
+  }
+  const tokenHash = data.properties.hashed_token;
+  const token = data.properties.email_otp || "";
+  const link = AUTH_CONFIRM_URL + "?" + new URLSearchParams({
+    token_hash: tokenHash,
+    type: "email",
+    redirect_to: DASHBOARD_URL,
+  }).toString();
+
+  const resendKey = Deno.env.get("RESEND_API_KEY") || Deno.env.get("resend");
+  const from = Deno.env.get("RESEND_FROM") || "IJ Langa Consulting <no-reply@ijlanga.co.za>";
+  if (!resendKey) throw new Error("RESEND_API_KEY is not configured.");
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + resendKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: "Confirm your IJ Langa Consulting account",
+      html: authEmailHtml(email, link, token),
+      text: "Confirm your IJ Langa Consulting account: " + link + "\n\nYour one-time verification code: " + token,
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.message || "Resend rejected the verification email.");
+  return data.user;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST required." }, 405);
@@ -245,29 +291,31 @@ Deno.serve(async (req) => {
     const role = employer ? "employee" : "client";
     const requestId = crypto.randomUUID();
 
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      // Email confirmation is required. The custom Send Email Hook sends
-      // the confirmation link to /auth-confirm.html, where token_hash is
-      // verified with Supabase before the user continues.
+    const metadata = {
+      first_name,
+      last_name,
+      surname,
+      full_name: first_name + " " + last_name + " " + surname,
       phone,
-      phone_confirm: false,
-      user_metadata: {
-        first_name,
-        last_name,
-        surname,
-        full_name: first_name + " " + last_name + " " + surname,
+      id_number: id_number || null,
+      company_registration_number: company_registration_number || null,
+    };
+    let createdUser: any;
+    try {
+      createdUser = await sendSignupConfirmation(admin, email, password, metadata);
+      const { error: phoneError } = await admin.auth.admin.updateUserById(createdUser.id, {
         phone,
-        id_number: id_number || null,
-        company_registration_number: company_registration_number || null,
-      },
-    });
-    if (createError || !created.user) return json({ error: createError?.message || "Could not create the account." }, 400);
+        user_metadata: metadata,
+      });
+      if (phoneError) throw phoneError;
+    } catch (createError: any) {
+      if (createdUser?.id) await admin.auth.admin.deleteUser(createdUser.id);
+      return json({ error: createError?.message || "Could not create the account or send the verification email." }, 400);
+    }
 
     const full_name = first_name + " " + last_name + " " + surname;
     const { error: profileError } = await admin.from("profiles").insert({
-      id: created.user.id,
+      id: createdUser.id,
       email,
       full_name,
       first_name, last_name, surname,
@@ -282,18 +330,18 @@ Deno.serve(async (req) => {
     });
 
     if (profileError) {
-      await admin.auth.admin.deleteUser(created.user.id);
+      await admin.auth.admin.deleteUser(createdUser.id);
       return json({ error: "Account could not be prepared: " + profileError.message }, 500);
     }
 
-    const idPath = created.user.id + "/" + requestId + "-id-copy." + ext(idCopy);
-    const addressPath = created.user.id + "/" + requestId + "-proof-of-address." + ext(proofOfAddress);
+    const idPath = createdUser.id + "/" + requestId + "-id-copy." + ext(idCopy);
+    const addressPath = createdUser.id + "/" + requestId + "-proof-of-address." + ext(proofOfAddress);
     try {
       await saveFile(admin, idCopy, idPath);
       await saveFile(admin, proofOfAddress, addressPath);
     } catch (e) {
       await admin.storage.from("account-verification").remove([idPath, addressPath]);
-      await admin.from("profiles").delete().eq("id", created.user.id);
+      await admin.from("profiles").delete().eq("id", createdUser.id);
       await admin.auth.admin.deleteUser(created.user.id);
       throw e;
     }
