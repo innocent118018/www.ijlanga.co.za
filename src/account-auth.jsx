@@ -13,7 +13,7 @@ export default function AccountAuth({onClose=false,embedded=false}){
 
  useEffect(()=>{
   const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
-  if(hash.get('type')==='recovery'||hash.get('access_token'))setMode('reset-complete');
+  if(hash.get('type')==='recovery'||hash.get('access_token')||new URLSearchParams(window.location.search).get('password-reset')==='1')setMode('reset-complete');
  },[]);
 
  const update=(key,value)=>setForm(f=>({...f,[key]:value}));
