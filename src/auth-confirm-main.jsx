@@ -4,13 +4,13 @@ import{supabase}from'./lib/supabase';
 import'./auth-confirm.css';
 
 function App(){
- const[state,setState]=useState(tokenHash?'checking':type==='recovery'?'recovery-options':'error'),[message,setMessage]=useState(tokenHash?'Verifying your secure account link…':type==='recovery'?'Enter the email and one-time code from your reset email.':'This verification link is incomplete or invalid. Please request a new email.');
- const[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[email,setEmail]=useState(''),[otp,setOtp]=useState(''),[busy,setBusy]=useState(false),[redirectTo,setRedirectTo]=useState('/dashboard.html');
  const params=new URLSearchParams(window.location.search);
  const type=params.get('type')||'email'; const tokenHash=params.get('token_hash')||'';
  const target=params.get('redirect_to')||'/dashboard.html';
+ const[state,setState]=useState(tokenHash?'checking':type==='recovery'?'recovery-options':'error'),[message,setMessage]=useState(tokenHash?'Verifying your secure account link…':type==='recovery'?'Enter the email and one-time code from your reset email.':'This verification link is incomplete or invalid. Please request a new email.');
+ const[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[email,setEmail]=useState(''),[otp,setOtp]=useState(''),[busy,setBusy]=useState(false),[redirectTo,setRedirectTo]=useState('/dashboard.html');
  useEffect(()=>{setRedirectTo(target);(async()=>{
-   if(!tokenHash){setState('error');setMessage('This verification link is incomplete or invalid. Please request a new email.');return}
+   if(!tokenHash){if(type!=='recovery'){setState('error');setMessage('This verification link is incomplete or invalid. Please request a new email.')}return}
    try{
     const{error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type});
     if(error)throw error;
