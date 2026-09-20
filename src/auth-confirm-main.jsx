@@ -15,6 +15,10 @@ function App(){
     const{error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type});
     if(error)throw error;
     if(type==='recovery'){setState('password');setMessage('Your reset link is verified. Choose a new password below.');return}
+    if(type==='email'||type==='signup'||type==='magiclink'){
+      const{error:markError}=await supabase.rpc('mark_email_verified');
+      if(markError)throw markError;
+    }
     setState('success');setMessage('Your account verification was successful. Redirecting…');
     setTimeout(()=>{window.location.href=target},800);
    }catch(e){
