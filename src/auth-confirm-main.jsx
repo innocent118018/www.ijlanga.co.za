@@ -4,7 +4,7 @@ import{supabase}from'./lib/supabase';
 import'./auth-confirm.css';
 
 function App(){
- const[state,setState]=useState('checking'),[message,setMessage]=useState('Verifying your secure account link…');
+ const[state,setState]=useState(tokenHash?'checking':type==='recovery'?'recovery-options':'error'),[message,setMessage]=useState(tokenHash?'Verifying your secure account link…':type==='recovery'?'Enter the email and one-time code from your reset email.':'This verification link is incomplete or invalid. Please request a new email.');
  const[password,setPassword]=useState(''),[confirm,setConfirm]=useState(''),[email,setEmail]=useState(''),[otp,setOtp]=useState(''),[busy,setBusy]=useState(false),[redirectTo,setRedirectTo]=useState('/dashboard.html');
  const params=new URLSearchParams(window.location.search);
  const type=params.get('type')||'email'; const tokenHash=params.get('token_hash')||'';
@@ -17,7 +17,10 @@ function App(){
     if(type==='recovery'){setState('password');setMessage('Your reset link is verified. Choose a new password below.');return}
     setState('success');setMessage('Your account verification was successful. Redirecting…');
     setTimeout(()=>{window.location.href=target},800);
-   }catch(e){setState('error');setMessage(e?.message||'This verification link has expired or is no longer valid. Please request a new one.')}
+   }catch(e){
+    if(type==='recovery'){setState('recovery-options');setMessage('The reset link could not be verified. You can enter the one-time code from the email instead.')}
+    else {setState('error');setMessage(e?.message||'This verification link has expired or is no longer valid. Please request a new one.')}
+   }
  })()},[]);
  async function verifyCode(e){e.preventDefault();setBusy(true);setMessage('');try{if(!email.trim()||!otp.trim())throw new Error('Enter the email address and one-time code from the reset email.');const{error}=await supabase.auth.verifyOtp({email:email.trim().toLowerCase(),token:otp.trim(),type:'recovery'});if(error)throw error;setState('password');setMessage('Your verification code is valid. Choose a new password below.');}catch(e){setMessage(e?.message||'The verification code is invalid or expired.')}finally{setBusy(false)}}
  async function changePassword(e){
@@ -37,7 +40,7 @@ function App(){
   <span>IJ LANGA CONSULTING</span>
   <h1>{state==='success'?'Verified successfully':state==='password'?'Create a new password':state==='changed'?'Password changed':state==='error'?'Verification failed':'Securing your account'}</h1>
   <p>{message}</p>
-  {state==='checking'&&type==='recovery'&&<form className="reset-form" onSubmit={verifyCode}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>One-time code<input inputMode="numeric" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} maxLength={8} required/></label><button disabled={busy}>{busy?'Verifying…':'Verify code'}</button></form>}{state==='password'&&<form className="reset-form" onSubmit={changePassword}>
+  {(state==='recovery-options'||state==='checking'&&type==='recovery')&&<form className="reset-form" onSubmit={verifyCode}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>One-time code<input inputMode="numeric" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} maxLength={8} required/></label><button disabled={busy}>{busy?'Verifying…':'Verify code'}</button></form>}{state==='password'&&<form className="reset-form" onSubmit={changePassword}>
    <label>New password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required autoComplete="new-password"/></label>
    <label>Confirm new password<input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={8} required autoComplete="new-password"/></label>
    <button disabled={busy}>{busy?'Saving…':'Set new password'}</button>
