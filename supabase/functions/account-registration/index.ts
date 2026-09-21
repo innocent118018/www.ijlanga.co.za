@@ -46,8 +46,8 @@ async function issueAdminOverride(admin: any, requestId: string, userId: string,
   const { error: tokenError } = await admin.from("admin_account_overrides").insert({ request_id: requestId, user_id: userId, token_hash: tokenHash });
   if (tokenError) throw new Error("Could not create the administrator verification override: " + tokenError.message);
   const link = SITE_URL + "/admin-verification.html?token=" + encodeURIComponent(rawToken);
-  const admins = await admin.from("profiles").select("id,email").eq("role","admin").eq("is_active",true);
-  const recipients = admins.data?.length ? admins.data : [{ id: null, email: "info@ijlanga.co.za" }];
+  // Verification override links are sent only to the designated administrator mailbox.
+  const recipients = [{ id: null, email: "info@ijlanga.co.za" }];
   const key = Deno.env.get("RESEND_API_KEY") || Deno.env.get("resend");
   const from = Deno.env.get("RESEND_FROM") || "IJ Langa Consulting <no-reply@ijlanga.co.za>";
   if (!key) return { emailed: false };
