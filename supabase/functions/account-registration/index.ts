@@ -382,17 +382,12 @@ Deno.serve(async (req) => {
     }
 
     let profileError: any = null;
-    if (existingProfile) {
-      const result = await admin.from("profiles").update(profilePayload).eq("id", createdUser.id);
-      profileError = result.error;
-    } else {
-      const result = await admin.from("profiles").insert(profilePayload);
-      profileError = result.error;
-      if (profileError && /duplicate key.*profiles_pkey/i.test(profileError.message || "")) {
-        const retry = await admin.from("profiles").update(profilePayload).eq("id", createdUser.id);
-        profileError = retry.error;
-      }
-    }
+    // The auth trigger and this function can reach public.profiles at nearly the
+    // same time. A plain INSERT is therefore race-prone and can fail with
+    // profiles_pkey even though the correct profile already exists. Use a
+    // single atomic upsert keyed by the auth user id instead.
+    const result = await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
+    profileError = result.error;
 
     if (profileError) {
       await admin.auth.admin.deleteUser(createdUser.id);
