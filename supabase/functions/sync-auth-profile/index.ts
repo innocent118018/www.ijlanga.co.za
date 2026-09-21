@@ -18,6 +18,7 @@ Deno.serve(async(req)=>{
     if(userError||!user) return json({error:"Authenticated user could not be verified."},401);
 
     const admin=createClient(url,serviceKey,{auth:{autoRefreshToken:false,persistSession:false}});
+    let profileRepaired=false;
     let {data:profile,error:profileError}=await admin.from("profiles")
       .select("email,first_name,last_name,surname,full_name,phone,id_number,company_registration_number,role,is_active,approval_status")
       .eq("id",user.id).maybeSingle();
@@ -50,6 +51,7 @@ Deno.serve(async(req)=>{
       const {error:upsertError}=await admin.from("profiles").upsert(payload,{onConflict:"id"});
       if(upsertError) return json({error:"Verified email, but the account profile could not be repaired: "+upsertError.message},500);
       profile=payload;
+      profileRepaired=true;
     }else{
       const {error:verifiedError}=await admin.from("profiles").update({email_verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",user.id);
       if(verifiedError) return json({error:"Verified email, but verification could not be recorded: "+verifiedError.message},500);
@@ -69,7 +71,7 @@ Deno.serve(async(req)=>{
       },
     });
     if(updateError) return json({error:updateError.message},500);
-    return json({ok:true,profile_repaired:!r.result.content.includes('profile_repaired')});
+    return json({ok:true,profile_repaired:profileRepaired});
   }catch(e){
     return json({error:e?.message||"Could not synchronize account profile."},500);
   }
