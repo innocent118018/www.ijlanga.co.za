@@ -164,11 +164,19 @@ function App(){
     if(!user?.email)throw new Error('Supabase did not return the account email after the password update. Request a new reset link.');
     const{error:profileError}=await supabase.from('profiles').update({updated_at:new Date().toISOString()}).eq('id',user.id);
     if(profileError)throw profileError;
-    const{data:login,error:loginError}=await supabase.auth.signInWithPassword({email:user.email,password});
-    if(loginError||!login?.session)throw loginError||new Error('Password changed, but automatic sign-in failed. Please sign in again.');
-    const{data:profile,error:readError}=await supabase.from('profiles').select('role,is_active,approval_status').eq('id',login.user.id).maybeSingle();
+    // updateUser() is performed inside the authenticated recovery session.
+    // Do not immediately call signInWithPassword(): that can return 400 while
+    // the recovery session is still being finalized or while email confirmation
+    // is required. Reuse the verified recovery session instead.
+    const{data:sessionData}=await supabase.auth.getSession();
+    const session=sessionData?.session;
+    if(!session?.user)throw new Error('Password changed, but Supabase did not keep the verified recovery session. Request a new reset link.');
+    const{data:profile,error:readError}=await supabase.from('profiles').select('role,is_active,approval_status').eq('id',session.user.id).maybeSingle();
     if(readError)throw readError;
-    if(!profile?.is_active){
+    if(!profile){
+      throw new Error('Password changed, but the account profile is missing. Contact info@ijlanga.co.za so the administrator can repair the account.');
+    }
+    if(!profile.is_active){
       await supabase.auth.signOut();
       setState('pending');setMessage('Password changed successfully. The account is still awaiting IJ Langa approval before dashboard access is enabled.');
       try{window.alert('Password changed successfully. The account is still awaiting administrator approval.')}catch{}
