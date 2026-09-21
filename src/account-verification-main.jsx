@@ -6,7 +6,7 @@ import'./auth-confirm.css';
 const SITE='https://www.ijlanga.co.za';
 const DASHBOARD=SITE+'/dashboard.html';
 const SIGNIN=SITE+'/dashboard.html';
-const RESET_FN=SITE.replace('https://www.','https://')+'/functions/v1/request-password-reset';
+const RESET_FN='https://pyhcmceyhrulkwzedwgf.supabase.co/functions/v1/request-password-reset';
 
 function safeTarget(value){
  try{
