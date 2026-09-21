@@ -361,7 +361,7 @@ Deno.serve(async (req) => {
       .eq("id_number",id_number)
       .maybeSingle();
 
-    const role = employer ? "employee" : "client";
+    const role = email === "info@ijlanga.co.za" ? "admin" : employer ? "employee" : "client";
     const requestId = crypto.randomUUID();
 
     const metadata = {
@@ -400,8 +400,8 @@ Deno.serve(async (req) => {
       role,
       employer_id: employer?.id || null,
       organization_name: employer?.organization_name || null,
-      is_active: false,
-      approval_status: "pending",
+      is_active: role === "admin",
+      approval_status: role === "admin" ? "approved" : "pending",
       email_verified_at: null,
       updated_at: new Date().toISOString(),
     };
