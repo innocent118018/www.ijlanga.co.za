@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
     }
 
     const full_name = first_name + " " + last_name + " " + surname;
-    const { error: profileError } = await admin.from("profiles").upsert({
+    const profilePayload = {
       id: createdUser.id,
       email,
       full_name,
@@ -366,7 +366,33 @@ Deno.serve(async (req) => {
       approval_status: "pending",
       email_verified_at: null,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "id" });
+    };
+
+    // The auth-user trigger may have already created public.profiles for this
+    // user. Update that row first; only insert if the trigger did not create it.
+    const { data: existingProfile, error: existingProfileError } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", createdUser.id)
+      .maybeSingle();
+
+    if (existingProfileError) {
+      await admin.auth.admin.deleteUser(createdUser.id);
+      return json({ error: "Account profile lookup failed: " + existingProfileError.message }, 500);
+    }
+
+    let profileError: any = null;
+    if (existingProfile) {
+      const result = await admin.from("profiles").update(profilePayload).eq("id", createdUser.id);
+      profileError = result.error;
+    } else {
+      const result = await admin.from("profiles").insert(profilePayload);
+      profileError = result.error;
+      if (profileError && /duplicate key.*profiles_pkey/i.test(profileError.message || "")) {
+        const retry = await admin.from("profiles").update(profilePayload).eq("id", createdUser.id);
+        profileError = retry.error;
+      }
+    }
 
     if (profileError) {
       await admin.auth.admin.deleteUser(createdUser.id);
