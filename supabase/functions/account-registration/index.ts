@@ -63,18 +63,46 @@ async function issueAdminOverride(admin: any, requestId: string, userId: string,
   return { emailed: sent > 0 };
 }
 
-async function sendSignupConfirmation(admin: any, email: string, password: string, metadata: Record<string,unknown>) {
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "signup",
-    email,
-    password,
-    options: { data: metadata, redirectTo: DASHBOARD_URL },
-  });
-  if (error || !data?.properties?.hashed_token || !data?.user?.id) {
-    throw new Error("Could not generate the email verification link: " + (error?.message || "missing verification token"));
+async function sendSignupConfirmation(admin: any, email: string, password: string, metadata: Record<string,unknown>, existingUserId?: string) {
+  let user: any;
+  let tokenHash = "";
+  let token = "";
+
+  if (existingUserId) {
+    const { error: updateError } = await admin.auth.admin.updateUserById(existingUserId, {
+      password,
+      phone: String(metadata.phone || ""),
+      email_confirm: false,
+      user_metadata: metadata,
+    });
+    if (updateError) throw new Error("Could not repair the existing authentication account: " + updateError.message);
+
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: DASHBOARD_URL },
+    });
+    if (error || !data?.properties?.hashed_token || !data?.user?.id) {
+      throw new Error("Could not generate the email verification link for the existing account: " + (error?.message || "missing verification token"));
+    }
+    user = data.user;
+    tokenHash = data.properties.hashed_token;
+    token = data.properties.email_otp || "";
+  } else {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password,
+      options: { data: metadata, redirectTo: DASHBOARD_URL },
+    });
+    if (error || !data?.properties?.hashed_token || !data?.user?.id) {
+      throw new Error("Could not generate the email verification link: " + (error?.message || "missing verification token"));
+    }
+    user = data.user;
+    tokenHash = data.properties.hashed_token;
+    token = data.properties.email_otp || "";
   }
-  const tokenHash = data.properties.hashed_token;
-  const token = data.properties.email_otp || "";
+
   const link = AUTH_CONFIRM_URL + "?" + new URLSearchParams({
     token_hash: tokenHash,
     type: "email",
@@ -98,7 +126,13 @@ async function sendSignupConfirmation(admin: any, email: string, password: strin
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result?.message || "Resend rejected the verification email.");
-  return data.user;
+  return user;
+}
+
+async function findAuthUserByEmail(admin: any, email: string) {
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) throw new Error("Could not check the existing authentication account: " + error.message);
+  return (data?.users || []).find((u: any) => String(u.email || "").toLowerCase() === email.toLowerCase()) || null;
 }
 
 Deno.serve(async (req) => {
@@ -338,16 +372,18 @@ Deno.serve(async (req) => {
       company_registration_number: company_registration_number || null,
     };
     let createdUser: any;
+    let createdNewAuthUser = false;
     try {
-      createdUser = await sendSignupConfirmation(admin, email, password, metadata);
-      const { error: phoneError } = await admin.auth.admin.updateUserById(createdUser.id, {
-        phone,
-        user_metadata: metadata,
-      });
-      if (phoneError) throw phoneError;
+      // Profiles are not the source of truth for authentication. If an older
+      // account exists in auth.users without a profile row, repair that account
+      // instead of calling generateLink(signup) and creating a second profile.
+      const authExisting = await findAuthUserByEmail(admin, email);
+      createdNewAuthUser = !authExisting;
+      createdUser = await sendSignupConfirmation(admin, email, password, metadata, authExisting?.id);
+      if (!createdUser?.id) throw new Error("Supabase did not return a user ID.");
     } catch (createError: any) {
-      if (createdUser?.id) await admin.auth.admin.deleteUser(createdUser.id);
-      return json({ error: createError?.message || "Could not create the account or send the verification email." }, 400);
+      if (createdNewAuthUser && createdUser?.id) await admin.auth.admin.deleteUser(createdUser.id);
+      return json({ error: createError?.message || "Could not create or prepare the authentication account." }, 400);
     }
 
     const full_name = first_name + " " + last_name + " " + surname;
@@ -368,37 +404,13 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    // generateLink() creates the Auth user and the auth.users trigger normally
-    // creates the matching public.profiles row before it returns. Update that
-    // trigger-created row instead of racing it with a second INSERT/UPSERT.
-    const { data: existingProfile, error: existingProfileError } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("id", createdUser.id)
-      .maybeSingle();
-
-    if (existingProfileError) {
-      await admin.auth.admin.deleteUser(createdUser.id);
-      return json({ error: "Account profile lookup failed: " + existingProfileError.message }, 500);
-    }
-
-    let profileError: any = null;
-    if (existingProfile?.id) {
-      const { error } = await admin.from("profiles")
-        .update(profilePayload)
-        .eq("id", createdUser.id);
-      profileError = error;
-    } else {
-      // Defensive fallback for projects where the profile trigger is disabled.
-      const { error } = await admin.from("profiles").insert(profilePayload);
-      profileError = error;
-    }
-
+    // The auth.users trigger may create a minimal profile before this code
+    // runs. Upsert makes this operation idempotent and removes the duplicate
+    // primary-key race that caused "profiles_pkey" failures.
+    const { error: profileError } = await admin.from("profiles")
+      .upsert(profilePayload, { onConflict: "id" });
     if (profileError) {
-      // Do not hide the real database error behind the old "duplicate key"
-      // message. The Auth user is rolled back because the registration is not
-      // usable without its profile.
-      await admin.auth.admin.deleteUser(createdUser.id);
+      if (createdNewAuthUser) await admin.auth.admin.deleteUser(createdUser.id);
       return json({ error: "Account profile could not be prepared: " + profileError.message }, 500);
     }
 
