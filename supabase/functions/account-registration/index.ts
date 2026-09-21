@@ -368,8 +368,9 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    // The auth-user trigger may have already created public.profiles for this
-    // user. Update that row first; only insert if the trigger did not create it.
+    // generateLink() creates the Auth user and the auth.users trigger normally
+    // creates the matching public.profiles row before it returns. Update that
+    // trigger-created row instead of racing it with a second INSERT/UPSERT.
     const { data: existingProfile, error: existingProfileError } = await admin
       .from("profiles")
       .select("id")
@@ -382,16 +383,23 @@ Deno.serve(async (req) => {
     }
 
     let profileError: any = null;
-    // The auth trigger and this function can reach public.profiles at nearly the
-    // same time. A plain INSERT is therefore race-prone and can fail with
-    // profiles_pkey even though the correct profile already exists. Use a
-    // single atomic upsert keyed by the auth user id instead.
-    const result = await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
-    profileError = result.error;
+    if (existingProfile?.id) {
+      const { error } = await admin.from("profiles")
+        .update(profilePayload)
+        .eq("id", createdUser.id);
+      profileError = error;
+    } else {
+      // Defensive fallback for projects where the profile trigger is disabled.
+      const { error } = await admin.from("profiles").insert(profilePayload);
+      profileError = error;
+    }
 
     if (profileError) {
+      // Do not hide the real database error behind the old "duplicate key"
+      // message. The Auth user is rolled back because the registration is not
+      // usable without its profile.
       await admin.auth.admin.deleteUser(createdUser.id);
-      return json({ error: "Account could not be prepared: " + profileError.message }, 500);
+      return json({ error: "Account profile could not be prepared: " + profileError.message }, 500);
     }
 
     const idPath = createdUser.id + "/" + requestId + "-id-copy." + ext(idCopy);
