@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
         .eq("id_number",id_number)
         .maybeSingle();
 
-      const role = employer ? "employee" : "client";
+      const role = email === "info@ijlanga.co.za" ? "admin" : employer ? "employee" : "client";
       const requestId = crypto.randomUUID();
 
       const { error: profileUpdateError } = await admin.from("profiles").update({
@@ -234,9 +234,9 @@ Deno.serve(async (req) => {
         role,
         employer_id: employer?.id || null,
         organization_name: employer?.organization_name || null,
-        is_active: false,
-        approval_status: "pending",
-        approved_at: null,
+        is_active: role === "admin",
+        approval_status: role === "admin" ? "approved" : "pending",
+        approved_at: role === "admin" ? new Date().toISOString() : null,
         approved_by: null,
         email_verified_at: null,
         updated_at: new Date().toISOString(),
@@ -269,7 +269,9 @@ Deno.serve(async (req) => {
         status: "pending",
         id_copy_path: idPath,
         proof_of_address_path: addressPath,
-        notes: "Legacy incomplete account repaired and registration details attached. Awaiting email verification and required approval.",
+        notes: role === "admin"
+        ? "Designated administrator mailbox repaired. Email verification is required before sign-in."
+        : "Legacy incomplete account repaired and registration details attached. Awaiting email verification and required approval.",
       });
       if (reqError) throw reqError;
 
@@ -437,9 +439,11 @@ Deno.serve(async (req) => {
       status: "pending",
       id_copy_path: idPath,
       proof_of_address_path: addressPath,
-      notes: employer
-        ? "ID matched employer profile " + (employer.full_name || employer.email) + ". Account auto-classified as employee and is awaiting approval."
-        : "New public account registration awaiting administrator approval.",
+      notes: role === "admin"
+        ? "Designated administrator mailbox. Account is active after email verification."
+        : employer
+          ? "ID matched employer profile " + (employer.full_name || employer.email) + ". Account auto-classified as employee and is awaiting approval."
+          : "New public account registration awaiting administrator approval.",
     });
 
     if (reqError) {
@@ -498,7 +502,9 @@ Deno.serve(async (req) => {
       verification_url: AUTH_CONFIRM_URL + "?type=email&redirect_to=" + encodeURIComponent(DASHBOARD_URL),
       message: employer
         ? "Account created as Employee. Check your email to verify it. Your employer and IJ Langa administrator must approve the account before normal sign-in is available."
-        : "Account created. Check your email to verify it. IJ Langa Consulting must approve your verification documents before normal sign-in is available.",
+        : role === "admin"
+          ? "Administrator account created. Check info@ijlanga.co.za and verify the email; after verification the administrator dashboard will open."
+          : "Account created. Check your email to verify it. IJ Langa Consulting must approve your verification documents before normal sign-in is available.",
     });
   } catch (e) {
     return json({ error: e?.message || "Unable to process account registration." }, 500);
