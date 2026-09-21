@@ -18,10 +18,42 @@ Deno.serve(async(req)=>{
     if(userError||!user) return json({error:"Authenticated user could not be verified."},401);
 
     const admin=createClient(url,serviceKey,{auth:{autoRefreshToken:false,persistSession:false}});
-    const {data:profile,error:profileError}=await admin.from("profiles")
-      .select("email,first_name,last_name,surname,full_name,phone,id_number,company_registration_number")
+    let {data:profile,error:profileError}=await admin.from("profiles")
+      .select("email,first_name,last_name,surname,full_name,phone,id_number,company_registration_number,role,is_active,approval_status")
       .eq("id",user.id).maybeSingle();
-    if(profileError||!profile) return json({error:"Profile not found."},404);
+    if(profileError) return json({error:"Profile lookup failed: "+profileError.message},500);
+
+    // Verification can arrive before the profile trigger has completed. Repair
+    // the profile from the trusted Auth metadata instead of failing the link.
+    if(!profile){
+      const m=user.user_metadata||{};
+      const first_name=String(m.first_name||"").trim();
+      const last_name=String(m.last_name||"").trim();
+      const surname=String(m.surname||"").trim();
+      const full_name=String(m.full_name||[first_name,last_name,surname].filter(Boolean).join(" ")||user.email||"User").trim();
+      const payload={
+        id:user.id,
+        email:user.email,
+        first_name:first_name||null,
+        last_name:last_name||null,
+        surname:surname||null,
+        full_name,
+        phone:String(m.phone||user.phone||"").trim()||null,
+        id_number:m.id_number?String(m.id_number):null,
+        company_registration_number:m.company_registration_number?String(m.company_registration_number):null,
+        role:"client",
+        is_active:false,
+        approval_status:"pending",
+        email_verified_at:new Date().toISOString(),
+        updated_at:new Date().toISOString(),
+      };
+      const {error:upsertError}=await admin.from("profiles").upsert(payload,{onConflict:"id"});
+      if(upsertError) return json({error:"Verified email, but the account profile could not be repaired: "+upsertError.message},500);
+      profile=payload;
+    }else{
+      const {error:verifiedError}=await admin.from("profiles").update({email_verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",user.id);
+      if(verifiedError) return json({error:"Verified email, but verification could not be recorded: "+verifiedError.message},500);
+    }
 
     const {error:updateError}=await admin.auth.admin.updateUserById(user.id,{
       phone:profile.phone||undefined,
@@ -37,7 +69,7 @@ Deno.serve(async(req)=>{
       },
     });
     if(updateError) return json({error:updateError.message},500);
-    return json({ok:true});
+    return json({ok:true,profile_repaired:!r.result.content.includes('profile_repaired')});
   }catch(e){
     return json({error:e?.message||"Could not synchronize account profile."},500);
   }
