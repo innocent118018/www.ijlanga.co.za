@@ -29,9 +29,9 @@ async function sendResend(key: string, from: string, to: string, m: {subject:str
 
 function customConfirmUrl(action: string, hash: string, redirectTo: string) {
   if (!hash) return "";
-  const type = action === "signup" || action === "confirmation" || action === "magiclink" ? "email" : action;
+  const type = action === "signup" || action === "confirmation" ? "email" : action;
   const qs = new URLSearchParams({ token_hash:hash, type, redirect_to:redirectTo || "https://www.ijlanga.co.za/dashboard.html" });
-  return "https://www.ijlanga.co.za/account-verification.html?" + qs.toString();
+  return "https://www.ijlanga.co.za/?account-verification=1&" + qs.toString();
 }
 
 Deno.serve(async (req) => {
