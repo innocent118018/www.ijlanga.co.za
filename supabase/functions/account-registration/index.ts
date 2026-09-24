@@ -103,9 +103,10 @@ async function sendSignupConfirmation(admin: any, email: string, password: strin
     token = data.properties.email_otp || "";
   }
 
+  const linkType = existingUserId ? "magiclink" : "email";
   const link = AUTH_CONFIRM_URL + "?" + new URLSearchParams({
     token_hash: tokenHash,
-    type: "magiclink",
+    type: linkType,
     redirect_to: DASHBOARD_URL,
   }).toString();
 
