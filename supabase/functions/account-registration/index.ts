@@ -33,7 +33,7 @@ async function saveFile(admin: any, file: File, path: string) {
 
 const SITE_URL = "https://www.ijlanga.co.za";
 const DASHBOARD_URL = SITE_URL + "/dashboard.html";
-const AUTH_CONFIRM_URL = SITE_URL + "/account-verification.html";
+const AUTH_CONFIRM_URL = SITE_URL + "/?account-verification=1";
 
 function authEmailHtml(email: string, link: string, token: string) {
   return `<html><body style="margin:0;background:#f4f7f9;font-family:Arial,sans-serif;color:#10243a"><div style="max-width:620px;margin:30px auto;background:#fff;border:1px solid #dfe6ed;border-radius:18px;overflow:hidden"><div style="background:#0b2239;padding:26px 30px;color:#fff"><strong style="font-size:18px;letter-spacing:2px">IJ LANGA CONSULTING</strong><div style="font-size:11px;color:#c69b4a;margin-top:6px">ACCOUNTING YOU CAN TRUST</div></div><div style="padding:34px"><h1 style="font-size:25px;margin:0 0 14px;color:#0b2239">Confirm your IJ Langa Consulting account</h1><p style="line-height:1.7;color:#637487">Your account has been created. Please confirm your email address before signing in.</p><p style="text-align:center;margin:30px 0"><a href="${link}" style="display:inline-block;background:#0b2239;color:#fff;text-decoration:none;padding:14px 22px;border-radius:9px;font-weight:bold">Confirm email</a></p><p style="font-size:12px;color:#81909e;line-height:1.6">If the button does not work, copy and paste this link into your browser:<br><span style="word-break:break-all">${link}</span></p><p style="font-size:13px;color:#637487">Your one-time verification code: <strong style="color:#0b2239">${token}</strong></p><p style="font-size:11px;color:#9aa7b3;margin-top:28px">This email was sent to ${email}. If you did not request this action, you can safely ignore this message.</p></div></div></body></html>`;
@@ -105,7 +105,7 @@ async function sendSignupConfirmation(admin: any, email: string, password: strin
 
   const link = AUTH_CONFIRM_URL + "?" + new URLSearchParams({
     token_hash: tokenHash,
-    type: "email",
+    type: "magiclink",
     redirect_to: DASHBOARD_URL,
   }).toString();
 
