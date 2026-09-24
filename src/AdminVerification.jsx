@@ -1,0 +1,11 @@
+import React,{useEffect,useState}from'react';
+import{CheckCircle2,ShieldAlert,LoaderCircle,ArrowRight}from'lucide-react';
+import{supabase}from'./lib/supabase';
+import'./auth-confirm.css';
+const SITE='https://www.ijlanga.co.za',ADMIN=SITE+'/admin.html';
+export default function AdminVerification(){
+ const token=new URLSearchParams(window.location.search).get('token')||'';
+ const[state,setState]=useState('checking'),[message,setMessage]=useState('Checking the secure administrator verification link…'),[account,setAccount]=useState(null);
+ useEffect(()=>{let live=true;(async()=>{try{if(!token)throw new Error('The administrator verification link is missing its security token.');const{data,error}=await supabase.functions.invoke('admin-account-override',{body:{token}});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'The administrator could not activate this account.');if(live){setAccount(data);setState('success');setMessage(data.message||'The account has been verified and activated.');}}catch(e){if(live){setState('error');setMessage(e?.message||'Administrator activation failed. Contact info@ijlanga.co.za.');}}})();return()=>{live=false}},[token]);
+ return <main className="auth-confirm"><section><div className={'auth-confirm-icon '+(state==='success'?'success':state==='error'?'error':'')}>{state==='checking'?<LoaderCircle size={28} className="spin"/>:state==='success'?<CheckCircle2 size={30}/>:<ShieldAlert size={30}/>}</div><span>IJ LANGA CONSULTING · ADMINISTRATOR</span><h1>{state==='checking'?'Activating account…':state==='success'?'Account activated':'Activation failed'}</h1><p>{message}</p>{account&&<p><strong>{account.name}</strong><br/>{account.email}</p>}{state==='success'&&<a href={ADMIN}>Open Admin Dashboard <ArrowRight size={16}/></a>}{state==='error'&&<><a href={ADMIN}>Open Admin Dashboard</a><p style={{fontSize:12,marginTop:18}}>If this link has expired or was already used, contact <strong>info@ijlanga.co.za</strong> for a new administrator verification link.</p></>}</section></main>
+}
