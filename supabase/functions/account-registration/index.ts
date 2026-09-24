@@ -406,11 +406,26 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    // The auth.users trigger may create a minimal profile before this code
-    // runs. Upsert makes this operation idempotent and removes the duplicate
-    // primary-key race that caused "profiles_pkey" failures.
-    const { error: profileError } = await admin.from("profiles")
-      .upsert(profilePayload, { onConflict: "id" });
+    // Supabase's auth.users trigger creates the profile row during user creation.
+    // Update that row first; only insert if the trigger did not create it. This
+    // avoids a second INSERT hitting profiles_pkey during the same registration flow.
+    let profileError: any = null;
+    const { data: existingProfile, error: profileLookupError } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", createdUser.id)
+      .maybeSingle();
+    if (profileLookupError) profileError = profileLookupError;
+    else if (existingProfile) {
+      const { error: updateProfileError } = await admin.from("profiles")
+        .update(profilePayload)
+        .eq("id", createdUser.id);
+      profileError = updateProfileError || null;
+    } else {
+      const { error: insertProfileError } = await admin.from("profiles")
+        .insert(profilePayload);
+      profileError = insertProfileError || null;
+    }
     if (profileError) {
       if (createdNewAuthUser) await admin.auth.admin.deleteUser(createdUser.id);
       return json({ error: "Account profile could not be prepared: " + profileError.message }, 500);
