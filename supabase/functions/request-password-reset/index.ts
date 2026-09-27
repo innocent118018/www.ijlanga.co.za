@@ -8,7 +8,7 @@ const cors={
 };
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}});
 const SITE="https://www.ijlanga.co.za";
-const VERIFY=SITE+"/?account-verification=1";
+const VERIFY=SITE+"/verify";
 const DASHBOARD=SITE+"/dashboard";
 
 function mailHtml(email:string,link:string,token:string){
