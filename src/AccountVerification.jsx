@@ -129,7 +129,7 @@ function App(){
    try{
     const em=email.trim().toLowerCase();
     if(!em)throw new Error('Enter the email address used for your IJ Langa account.');
-    const{error}=await supabase.auth.resend({type:'signup',email:em,options:{emailRedirectTo:SITE+'/?account-verification=1&redirect_to='+encodeURIComponent(DASHBOARD)}});
+    const{error}=await supabase.auth.resend({type:'signup',email:em,options:{emailRedirectTo:SITE+'/verify?redirect_to='+encodeURIComponent(DASHBOARD)}});
     if(error)throw error;
     setState('sent');setMessage('A fresh verification email has been requested. Open the newest email and click its verification link. If you do not receive it, check spam or contact info@ijlanga.co.za.');
    }catch(e){fail(e,'The verification email could not be requested. Check the email address and contact info@ijlanga.co.za if the problem continues.')}
@@ -203,7 +203,7 @@ function App(){
    {state==='recovery-request'&&<form className="reset-form" onSubmit={requestRecovery}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><button disabled={busy}>{busy?'Sending…':'Send password-reset link'}</button></form>}
    {state==='password'&&<form className="reset-form" onSubmit={changePassword}><label>New password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required autoComplete="new-password"/></label><label>Confirm new password<input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={8} required autoComplete="new-password"/></label><button disabled={busy}>{busy?'Saving…':'Set new password'}</button></form>}
    {state==='recovery-options'&&<form className="reset-form" onSubmit={verifyRecoveryCode}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>One-time code<input inputMode="numeric" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} maxLength={10} required/></label><button disabled={busy}>{busy?'Verifying…':'Verify reset code'}</button></form>}
-   {(state==='sent'||state==='pending'||state==='error')&&<div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><a href={SIGNIN}>Return to secure sign in</a>{state==='error'&&<a href="/?account-verification=1">Try verification again</a>}</div>}
+   {(state==='sent'||state==='pending'||state==='error')&&<div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><a href={SIGNIN}>Return to secure sign in</a>{state==='error'&&<a href="/verify">Try verification again</a>}</div>}
    {state!=='password'&&state!=='recovery-options'&&type!=='recovery'&&<p style={{fontSize:12,marginTop:24}}>Need help? Contact <strong>info@ijlanga.co.za</strong>.</p>}
  </section></main>
 }
