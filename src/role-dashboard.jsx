@@ -13,7 +13,14 @@ const roleLabel={employer:'Employer',employee:'Employee',reseller:'Reseller'};
 
 function SignIn(){return <AccountAuth embedded/>}
 
-async function ensureProfile(user){const normalizedEmail = String(user?.email || '').trim().toLowerCase();const adminMailbox = isAdminMailbox(normalizedEmail);const{data:p}=await supabase.from('profiles').select('id,email,full_name,role,phone,job_title,department,is_active,employer_id,organization_name,approval_status').eq('id',user.id).maybeSingle();if(p){if(adminMailbox || p.role === 'admin'){const refreshed = await supabase.from('profiles').update({role:'admin',is_active:true,approval_status:'approved',approved_at:p.approved_at || new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',user.id).select().single();if(refreshed.data)return refreshed.data;return p;}return p;}const defaultRole = adminMailbox ? 'admin' : 'client';const defaultProfile = {id:user.id,email:user.email,full_name:user.user_metadata?.full_name||user.email?.split('@')[0]||'User',role:defaultRole,is_active:adminMailbox,approval_status:adminMailbox?'approved':'pending',approved_at:adminMailbox?new Date().toISOString():null,updated_at:new Date().toISOString()};const{data:newProfile,error}=await supabase.from('profiles').upsert(defaultProfile,{onConflict:'id'}).select().single();if(error)throw error;return newProfile}
+async function ensureProfile(user){
+ const{data:p,error}=await supabase.from('profiles')
+  .select('id,email,full_name,role,phone,job_title,department,is_active,employer_id,organization_name,approval_status,email_verified_at')
+  .eq('id',user.id).maybeSingle();
+ if(error)throw error;
+ if(!p)throw new Error('Your account profile has not been provisioned. Contact info@ijlanga.co.za.');
+ return p;
+}
 async function routeUser(session){const p=await ensureProfile(session.user);if(!p.is_active)throw new Error('Your account is inactive. Please contact IJ Langa Consulting.');const adminOverride = p.role === 'admin' || isAdminMailbox(p.email);if(adminOverride)window.location.href='/admin';else if(p.role==='client')window.location.href='/app';else window.history.replaceState({},'',routeForRole(p.role));}
 
 function Layout({profile,onRefresh,onSignOut,children}){return <main className="role-shell"><header className="role-top"><div className="role-brand"><img src="/ijlanga-logo.svg" alt="IJ Langa Consulting logo"/><div><span>IJ LANGA CONSULTING</span><strong>{roleLabel[profile.role]||profile.role} Dashboard</strong><small>{profile.organization_name||profile.email}</small></div></div><div className="role-actions"><button onClick={onRefresh}><RefreshCw size={15}/> Refresh</button><button onClick={onSignOut}><LogOut size={15}/> Sign out</button></div></header>{children}<footer className="role-footer">IJ Langa Consulting (Pty) Ltd · Accounting you can trust.</footer></main>}
