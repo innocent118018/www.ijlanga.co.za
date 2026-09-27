@@ -35,5 +35,3 @@ export default function Portal(){
  <section className="portal-card portal-wide"><div className="portal-card-head"><span className="portal-eyebrow">DOCUMENTS</span><h2>My Documents</h2></div>{!documents.length?<p className="portal-muted">No documents have been uploaded yet.</p>:documents.map(d=><div className="portal-row" key={d.id}><div><b>{d.title}</b><small>{d.document_type} · {date(d.created_at)}</small></div><div><button onClick={()=>openDocument(d)} disabled={docBusy===d.id}><FolderOpen size={16}/>{docBusy===d.id?'Opening…':'Open'}</button></div></div>)}</section>
  </div>{document&&<Document type={document.type} data={document.data} close={()=>setDocument(null)}/>} {paymentTarget&&<PaymentChooser target={paymentTarget} onClose={()=>!paying&&setPaymentTarget(null)} onPay={choosePayment} busy={paying}/>}</main>;
 }
-
-createRoot(document.getElementById('root')).render(<Portal/>);
