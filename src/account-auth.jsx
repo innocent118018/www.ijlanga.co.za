@@ -1,7 +1,7 @@
 import React,{useEffect,useState}from'react';
 import{ArrowLeft,CheckCircle2,Eye,EyeOff,FileCheck2,LockKeyhole,Upload,UserRound,X}from'lucide-react';
 import{supabase}from'./lib/supabase';
-import { normalizeRegistrationError } from './lib/account-profile.js';
+import { normalizeRegistrationError, isAdminMailbox } from './lib/account-profile.js';
 import'./account-auth.css';
 
 const API_URL=import.meta.env.VITE_SUPABASE_URL||'https://pyhcmceyhrulkwzedwgf.supabase.co';
@@ -32,12 +32,29 @@ export default function AccountAuth({onClose=false,embedded=false}){
     throw e2;
    }
    if(!data.session)throw new Error('Sign in could not be completed.');
-   const{data:profile,error:pe}=await supabase.from('profiles').select('role,is_active,approval_status').eq('id',data.user.id).maybeSingle();
-   if(pe)throw pe;
-   if(!profile)throw new Error('Your account profile has not been prepared yet. Please contact IJ Langa Consulting.');
-   if(profile.is_active===false){
+   let { data: profile, error: pe } = await supabase.from('profiles').select('role,is_active,approval_status').eq('id',data.user.id).maybeSingle();
+   if (pe) throw pe;
+   if (!profile && isAdminMailbox(email)) {
+     const defaultAdminProfile = {
+       id: data.user.id,
+       email,
+       full_name: data.user.user_metadata?.full_name || email.split('@')[0],
+       role: 'admin',
+       is_active: true,
+       approval_status: 'approved',
+       approved_at: new Date().toISOString(),
+       updated_at: new Date().toISOString(),
+     };
+     const { data: inserted, error: insertError } = await supabase.from('profiles').upsert(defaultAdminProfile, { onConflict: 'id' }).select().single();
+     if (insertError) throw insertError;
+     profile = inserted;
+   }
+   if (!profile) {
+     throw new Error('Your account profile has not been prepared yet. Please contact IJ Langa Consulting.');
+   }
+   if (profile.is_active === false) {
     await supabase.auth.signOut();
-    throw new Error(profile.approval_status==='pending'?'Your account is registered but still awaiting IJ Langa approval. You will be able to sign in after approval.':'Your account is currently inactive. Please contact IJ Langa Consulting.');
+    throw new Error(profile.approval_status === 'pending' ? 'Your account is registered but still awaiting IJ Langa approval. You will be able to sign in after approval.' : 'Your account is currently inactive. Please contact IJ Langa Consulting.');
    }
    window.location.href = profile.role === 'admin' ? '/admin' : '/app';
   }catch(e){setError(e.message||'Could not sign in.')}

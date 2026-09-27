@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState}from'react';
 import{createRoot}from'react-dom/client';
 import{ArrowRight,BriefcaseBusiness,Building2,CheckCircle2,FileText,LogOut,Package,RefreshCw,ShieldCheck,Users,WalletCards}from'lucide-react';
 import{supabase}from'./lib/supabase';
+import { isAdminMailbox } from './lib/account-profile.js';
 import'./dashboard.css';
 
 const roleMeta={employer:{label:'Employer Workspace',description:'Manage your business workspace, team relationships and IJ Langa service activity.',icon:Building2},employee:{label:'Employee Workspace',description:'View your employment profile and access the work areas assigned to your account.',icon:BriefcaseBusiness},reseller:{label:'Reseller Workspace',description:'Access the IJ Langa service catalogue and the customer relationships assigned to your reseller account.',icon:Package}};
@@ -19,7 +20,8 @@ function Dashboard(){
   if(pe){setError(pe.message);setLoading(false);return}
   if(!p){setError('Your account has not been provisioned yet. Please contact IJ Langa Consulting.');setLoading(false);return}
   if(p.is_active===false){setError('Your account is inactive. Please contact IJ Langa Consulting.');setLoading(false);return}
-  if(p.role==='admin'){window.location.replace('/admin');return}
+  const adminOverride = p.role === 'admin' || isAdminMailbox(p.email);
+  if(adminOverride){window.location.replace('/admin');return}
   if(p.role==='client'){window.location.replace('/app');return}
   setProfile(p);
   const{data:c}=await supabase.from('customers').select('*').eq('auth_user_id',s.user.id).maybeSingle();setCustomer(c||null);

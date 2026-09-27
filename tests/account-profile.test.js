@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeRegistrationError } from '../src/lib/account-profile.js';
+import { normalizeRegistrationError, isAdminMailbox } from '../src/lib/account-profile.js';
+
+test('recognizes the IJ Langa admin mailboxes as admin accounts', () => {
+  assert.equal(isAdminMailbox('info@ijlanga.co.za'), true);
+  assert.equal(isAdminMailbox('ij.langa11@gmail.com'), true);
+  assert.equal(isAdminMailbox('someone@example.com'), false);
+});
 
 test('normalizes duplicate profile errors to a safe user message', () => {
   const safe = normalizeRegistrationError('duplicate key value violates unique constraint "profiles_pkey"');
