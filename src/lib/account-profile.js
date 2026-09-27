@@ -1,4 +1,4 @@
-export const ADMIN_MAILBOXES = ['info@ijlanga.co.za', 'ij.langa11@gmail.com'];
+export const ADMIN_MAILBOXES = ['info@ijlanga.co.za'];
 
 export function isAdminMailbox(email) {
   const normalized = String(email || '').trim().toLowerCase();
