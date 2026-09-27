@@ -16,7 +16,7 @@ const providers=[
 ['Webhooks','Event processing','Node.js signed event gateway','Prototype']
 ];
 
-function App(){
+export default function App(){
  const [session,setSession]=React.useState(null); const [profile,setProfile]=React.useState(null);
  React.useEffect(()=>{supabase.auth.getSession().then(async({data})=>{setSession(data.session);if(data.session){const {data:p}=await supabase.from('profiles').select('role,is_active').eq('id',data.session.user.id).maybeSingle();setProfile(p)}})},[]);
  if(!session||profile?.role!=='admin'||profile?.is_active===false)return <main className="integration-gate"><h2>Administrator access required</h2><a href="/admin">Return to admin</a></main>;
