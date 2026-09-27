@@ -374,7 +374,8 @@ Deno.serve(async (req) => {
       .eq("id_number",id_number)
       .maybeSingle();
 
-    const role = email === "info@ijlanga.co.za" ? "admin" : employer ? "employee" : "client";
+    const isAdminMailbox = ADMIN_EMAILS.includes(String(email || "").trim().toLowerCase());
+    const role = isAdminMailbox ? "admin" : employer ? "employee" : "client";
     const requestId = crypto.randomUUID();
 
     const metadata = {
