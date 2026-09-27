@@ -6,3 +6,12 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://pyhcmceyhrulkw
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_INoEkMWhNEbysI8f7OLz9w_99Ohyyeg';
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
+
+export async function getCurrentUserProfile() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) return null;
+  const { data, error } = await supabase.from('profiles').select('id,email,full_name,role,is_active,approval_status,organization_name,phone').eq('id', user.id).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}

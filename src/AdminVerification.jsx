@@ -2,7 +2,7 @@ import React,{useEffect,useState}from'react';
 import{CheckCircle2,ShieldAlert,LoaderCircle,ArrowRight}from'lucide-react';
 import{supabase}from'./lib/supabase';
 import'./auth-confirm.css';
-const SITE='https://www.ijlanga.co.za',ADMIN=SITE+'/admin.html';
+const SITE='https://www.ijlanga.co.za',ADMIN=SITE+'/admin';
 export default function AdminVerification(){
  const token=new URLSearchParams(window.location.search).get('token')||'';
  const[state,setState]=useState('checking'),[message,setMessage]=useState('Checking the secure administrator verification link…'),[account,setAccount]=useState(null);

@@ -32,8 +32,17 @@ async function saveFile(admin: any, file: File, path: string) {
 }
 
 const SITE_URL = "https://www.ijlanga.co.za";
-const DASHBOARD_URL = SITE_URL + "/dashboard.html";
+const DASHBOARD_URL = SITE_URL + "/dashboard";
 const AUTH_CONFIRM_URL = SITE_URL + "/?account-verification=1";
+
+function normalizeRegistrationError(message: string) {
+  const raw = String(message || "").trim();
+  if (!raw) return "Unable to process account registration.";
+  if (/duplicate key value violates unique constraint.*profiles_pkey|profiles_pkey/i.test(raw) || /duplicate key value violates unique constraint/i.test(raw)) {
+    return "We found an existing account associated with this email address. Your registration could not be duplicated. Please sign in or contact IJ Langa Consulting if you believe this is incorrect.";
+  }
+  return raw;
+}
 
 function authEmailHtml(email: string, link: string, token: string) {
   return `<html><body style="margin:0;background:#f4f7f9;font-family:Arial,sans-serif;color:#10243a"><div style="max-width:620px;margin:30px auto;background:#fff;border:1px solid #dfe6ed;border-radius:18px;overflow:hidden"><div style="background:#0b2239;padding:26px 30px;color:#fff"><strong style="font-size:18px;letter-spacing:2px">IJ LANGA CONSULTING</strong><div style="font-size:11px;color:#c69b4a;margin-top:6px">ACCOUNTING YOU CAN TRUST</div></div><div style="padding:34px"><h1 style="font-size:25px;margin:0 0 14px;color:#0b2239">Confirm your IJ Langa Consulting account</h1><p style="line-height:1.7;color:#637487">Your account has been created. Please confirm your email address before signing in.</p><p style="text-align:center;margin:30px 0"><a href="${link}" style="display:inline-block;background:#0b2239;color:#fff;text-decoration:none;padding:14px 22px;border-radius:9px;font-weight:bold">Confirm email</a></p><p style="font-size:12px;color:#81909e;line-height:1.6">If the button does not work, copy and paste this link into your browser:<br><span style="word-break:break-all">${link}</span></p><p style="font-size:13px;color:#637487">Your one-time verification code: <strong style="color:#0b2239">${token}</strong></p><p style="font-size:11px;color:#9aa7b3;margin-top:28px">This email was sent to ${email}. If you did not request this action, you can safely ignore this message.</p></div></div></body></html>`;
@@ -45,7 +54,7 @@ async function issueAdminOverride(admin: any, requestId: string, userId: string,
   const tokenHash = Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
   const { error: tokenError } = await admin.from("admin_account_overrides").insert({ request_id: requestId, user_id: userId, token_hash: tokenHash });
   if (tokenError) throw new Error("Could not create the administrator verification override: " + tokenError.message);
-  const link = SITE_URL + "/admin-verification.html?token=" + encodeURIComponent(rawToken);
+  const link = SITE_URL + "/admin-verification?token=" + encodeURIComponent(rawToken);
   // Verification override links are sent only to the designated administrator mailbox.
   const recipients = [{ id: null, email: "info@ijlanga.co.za" }];
   const key = Deno.env.get("RESEND_API_KEY") || Deno.env.get("resend");
@@ -407,29 +416,22 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    // Supabase's auth.users trigger creates the profile row during user creation.
-    // Update that row first; only insert if the trigger did not create it. This
-    // avoids a second INSERT hitting profiles_pkey during the same registration flow.
-    let profileError: any = null;
-    const { data: existingProfile, error: profileLookupError } = await admin
+    // Supabase's auth.users trigger may already have created the profile row.
+    // Upsert by primary key so duplicate retries remain safe and do not hit
+    // the profiles_pkey constraint during rapid registration attempts.
+    const { error: profileUpsertError } = await admin
       .from("profiles")
-      .select("id")
-      .eq("id", createdUser.id)
-      .maybeSingle();
-    if (profileLookupError) profileError = profileLookupError;
-    else if (existingProfile) {
-      const { error: updateProfileError } = await admin.from("profiles")
-        .update(profilePayload)
-        .eq("id", createdUser.id);
-      profileError = updateProfileError || null;
-    } else {
-      const { error: insertProfileError } = await admin.from("profiles")
-        .insert(profilePayload);
-      profileError = insertProfileError || null;
-    }
-    if (profileError) {
+      .upsert(profilePayload, { onConflict: "id" });
+
+    if (profileUpsertError) {
       if (createdNewAuthUser) await admin.auth.admin.deleteUser(createdUser.id);
-      return json({ error: "Account profile could not be prepared: " + profileError.message }, 500);
+      console.error("AUTH_PROFILE_DUPLICATE", {
+        request_id: requestId,
+        user_id: createdUser.id,
+        timestamp: new Date().toISOString(),
+        message: profileUpsertError.message,
+      });
+      return json({ error: normalizeRegistrationError(profileUpsertError.message), code: "AUTH_PROFILE_DUPLICATE" }, 409);
     }
 
     const idPath = createdUser.id + "/" + requestId + "-id-copy." + ext(idCopy);

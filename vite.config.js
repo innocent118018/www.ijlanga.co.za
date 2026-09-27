@@ -33,8 +33,8 @@ function manualChunks(id) {
 function publicHeaderLinks(code,id){
   if(!id.endsWith('/src/main.jsx')) return null;
   const marker='<a href="#shop">Services and prices</a>';
-  if(!code.includes(marker)||code.includes('/shelf-companies.html')) return null;
-  return code.replace(marker,`${marker}<a href="/shelf-companies.html">Shelf companies</a>`);
+  if(!code.includes(marker)||code.includes('/shelf-companies')) return null;
+  return code.replace(marker,`${marker}<a href="/shelf-companies">Shelf companies</a>`);
 }
 
 export default defineConfig({

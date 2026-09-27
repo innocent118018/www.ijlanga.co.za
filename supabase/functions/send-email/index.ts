@@ -30,7 +30,7 @@ async function sendResend(key: string, from: string, to: string, m: {subject:str
 function customConfirmUrl(action: string, hash: string, redirectTo: string) {
   if (!hash) return "";
   const type = action === "signup" || action === "confirmation" ? "email" : action;
-  const qs = new URLSearchParams({ token_hash:hash, type, redirect_to:redirectTo || "https://www.ijlanga.co.za/dashboard.html" });
+  const qs = new URLSearchParams({ token_hash:hash, type, redirect_to:redirectTo || "https://www.ijlanga.co.za/dashboard" });
   return "https://www.ijlanga.co.za/?account-verification=1&" + qs.toString();
 }
 
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     if (!key) throw Object.assign(new Error("RESEND_API_KEY is not configured."),{code:500});
     const currentEmail = String(user.email || "").trim();
     const newEmail = String(user.new_email || "").trim();
-    const redirectTo = String(e.redirect_to || "https://www.ijlanga.co.za/dashboard.html").trim();
+    const redirectTo = String(e.redirect_to || "https://www.ijlanga.co.za/dashboard").trim();
     const token = String(e.token || "");
     const tokenNew = String(e.token_new || "");
     const hash = String(e.token_hash || "");

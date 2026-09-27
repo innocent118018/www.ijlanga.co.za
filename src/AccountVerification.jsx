@@ -3,17 +3,17 @@ import{supabase}from'./lib/supabase';
 import'./auth-confirm.css';
 
 const SITE='https://www.ijlanga.co.za';
-const DASHBOARD=SITE+'/dashboard.html';
-const SIGNIN=SITE+'/dashboard.html';
+const DASHBOARD='/dashboard';
+const SIGNIN='/login';
 const RESET_FN='https://pyhcmceyhrulkwzedwgf.supabase.co/functions/v1/request-password-reset';
 
 function safeTarget(value){
  try{
-  const u=new URL(value||DASHBOARD,SITE);
-  if(u.origin!==SITE)return DASHBOARD;
-  if(!['/dashboard.html','/portal.html','/admin.html'].includes(u.pathname))return DASHBOARD;
+  const u=new URL(value || DASHBOARD, SITE);
+  if(u.origin!==SITE)return `${SITE}${DASHBOARD}`;
+  if(!['/dashboard','/app','/admin','/login'].includes(u.pathname))return `${SITE}${DASHBOARD}`;
   return u.href;
- }catch{return DASHBOARD}
+ }catch{return `${SITE}${DASHBOARD}`}
 }
 
 function App(){
@@ -44,8 +44,11 @@ function App(){
 
  const fail=(e,fallback)=>{
   const text=e?.message||fallback;
-  setState('error');setMessage(text);
-  try{window.alert('Account verification failed: '+text)}catch{}
+  const safeText = /duplicate key value violates unique constraint|profiles_pkey|Could not create or prepare the authentication account|Account profile could not be prepared/i.test(String(text))
+    ? 'We found an existing account associated with this email address. Please sign in or contact IJ Langa Consulting if you believe this is incorrect.'
+    : text;
+  setState('error');setMessage(safeText);
+  try{window.alert('Account verification failed: '+safeText)}catch{}
  };
 
  const routeAfterAuth=async()=>{

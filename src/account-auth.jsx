@@ -1,6 +1,7 @@
 import React,{useEffect,useState}from'react';
 import{ArrowLeft,CheckCircle2,Eye,EyeOff,FileCheck2,LockKeyhole,Upload,UserRound,X}from'lucide-react';
 import{supabase}from'./lib/supabase';
+import { normalizeRegistrationError } from './lib/account-profile.js';
 import'./account-auth.css';
 
 const API_URL=import.meta.env.VITE_SUPABASE_URL||'https://pyhcmceyhrulkwzedwgf.supabase.co';
@@ -38,13 +39,13 @@ export default function AccountAuth({onClose=false,embedded=false}){
     await supabase.auth.signOut();
     throw new Error(profile.approval_status==='pending'?'Your account is registered but still awaiting IJ Langa approval. You will be able to sign in after approval.':'Your account is currently inactive. Please contact IJ Langa Consulting.');
    }
-   window.location.href='/dashboard.html';
+   window.location.href = profile.role === 'admin' ? '/admin' : '/app';
   }catch(e){setError(e.message||'Could not sign in.')}
   finally{setBusy(false)}
  }
 
- async function sendMagicLink(e){e.preventDefault();setBusy(true);clearMessages();const email=form.email.trim().toLowerCase();if(!email){setBusy(false);setError('Enter your email address.');return}try{const{error:e2}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+'/dashboard.html'}});if(e2)throw e2;setNotice('If the account is eligible, a secure sign-in link has been sent to your email. Check your inbox and spam folder.')}catch(e){setError(e.message||'Could not send the sign-in link.')}finally{setBusy(false)}}
-async function resendConfirmation(e){e.preventDefault();setBusy(true);clearMessages();const email=form.email.trim().toLowerCase();if(!email){setBusy(false);setError('Enter your email address.');return}try{const{error:e2}=await supabase.auth.resend({type:'signup',email,options:{emailRedirectTo:window.location.origin+'/dashboard.html'}});if(e2)throw e2;setNotice('A new confirmation email has been sent. Check your inbox and spam folder.')}catch(e){setError(e.message||'Could not resend the confirmation email.')}finally{setBusy(false)}}
+ async function sendMagicLink(e){e.preventDefault();setBusy(true);clearMessages();const email=form.email.trim().toLowerCase();if(!email){setBusy(false);setError('Enter your email address.');return}try{const redirectTo = `${window.location.origin}/login`; const{error:e2}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});if(e2)throw e2;setNotice('If the account is eligible, a secure sign-in link has been sent to your email. Check your inbox and spam folder.')}catch(e){setError(e.message||'Could not send the sign-in link.')}finally{setBusy(false)}}
+async function resendConfirmation(e){e.preventDefault();setBusy(true);clearMessages();const email=form.email.trim().toLowerCase();if(!email){setBusy(false);setError('Enter your email address.');return}try{const redirectTo = `${window.location.origin}/?account-verification=1&redirect_to=${encodeURIComponent('/app')}`; const{error:e2}=await supabase.auth.resend({type:'signup',email,options:{emailRedirectTo:redirectTo}});if(e2)throw e2;setNotice('A new confirmation email has been sent. Check your inbox and spam folder.')}catch(e){setError(e.message||'Could not resend the confirmation email.')}finally{setBusy(false)}}
 async function requestPasswordReset(e){
   e.preventDefault();setBusy(true);clearMessages();
   const email=form.email.trim().toLowerCase();
@@ -85,9 +86,9 @@ async function requestPasswordReset(e){
    fd.append('id_copy',idCopy);fd.append('proof_of_address',proofOfAddress);
    const response=await fetch(API_URL+'/functions/v1/account-registration',{method:'POST',headers:{apikey:API_KEY,Authorization:'Bearer '+API_KEY},body:fd});
    const data=await response.json().catch(()=>({}));
-   if(!response.ok||data.error)throw new Error(data.error||'Could not complete registration.');
+   if(!response.ok||data.error)throw new Error(normalizeRegistrationError(data.error || 'Could not complete registration.'));
    setNotice(data.message||'Registration submitted for approval.');setMode('submitted');
-  }catch(e){setError(e.message||'Could not create your account.')}
+  }catch(e){setError(normalizeRegistrationError(e.message||'Could not create your account.'))}
   finally{setBusy(false)}
  }
 
