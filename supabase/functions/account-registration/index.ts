@@ -33,7 +33,7 @@ async function saveFile(admin: any, file: File, path: string) {
 
 const SITE_URL = "https://www.ijlanga.co.za";
 const DASHBOARD_URL = SITE_URL + "/dashboard";
-const AUTH_CONFIRM_URL = SITE_URL + "/?account-verification=1";
+const AUTH_CONFIRM_URL = SITE_URL + "/verify";
 const ADMIN_EMAILS = ["info@ijlanga.co.za"];
 
 function normalizeRegistrationError(message: string) {
