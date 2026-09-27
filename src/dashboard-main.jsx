@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState}from'react';
+import{createRoot}from'react-dom/client';
 import{ArrowRight,BriefcaseBusiness,Building2,CheckCircle2,FileText,LogOut,Package,RefreshCw,ShieldCheck,Users,WalletCards}from'lucide-react';
 import{supabase}from'./lib/supabase';
 import'./dashboard.css';
@@ -51,4 +52,3 @@ function Dashboard(){
  {role==='reseller'&&<><section className="role-panel role-wide" id="customers"><div className="role-panel-head"><div><span className="role-eyebrow">CUSTOMER RELATIONSHIPS</span><h2>My customers</h2></div></div>{!linkedCustomers.length?<p className="role-muted">No customers have been assigned to your reseller account yet.</p>:<div className="role-table">{linkedCustomers.map(c=><div className="role-row" key={c.id}><div><b>{c.company_name||c.contact_name}</b><small>{c.contact_name} · {c.email}</small></div><span>{c.phone||'—'}</span></div>)}</div>}</section><section className="role-panel role-wide"><div className="role-panel-head"><div><span className="role-eyebrow">CATALOGUE</span><h2>Available services</h2></div></div><div className="role-product-grid">{products.map(p=><div className="role-product" key={p.id}><span>{p.category||'Service'}</span><b>{p.name}</b><small>{p.price_label||money(p.price)}</small></div>)}</div></section></>}</div><footer className="role-footer"><CheckCircle2 size={16}/> Access is controlled by your IJ Langa profile role and database permissions. <a href="/">Website</a></footer></main>;
 }
 export default Dashboard;
-createRoot(document.getElementById('root')).render(<Dashboard/>);
