@@ -34,7 +34,7 @@ async function saveFile(admin: any, file: File, path: string) {
 const SITE_URL = "https://www.ijlanga.co.za";
 const DASHBOARD_URL = SITE_URL + "/dashboard";
 const AUTH_CONFIRM_URL = SITE_URL + "/?account-verification=1";
-const ADMIN_EMAILS = ["info@ijlanga.co.za", "ij.langa11@gmail.com"];
+const ADMIN_EMAILS = ["info@ijlanga.co.za"];
 
 function normalizeRegistrationError(message: string) {
   const raw = String(message || "").trim();
@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
         .eq("id_number",id_number)
         .maybeSingle();
 
-      const isAdminMailbox = email === "info@ijlanga.co.za" || email === "ij.langa11@gmail.com";
+      const isAdminMailbox = email === "info@ijlanga.co.za";
       const role = isAdminMailbox ? "admin" : employer ? "employee" : "client";
       const requestId = crypto.randomUUID();
 
