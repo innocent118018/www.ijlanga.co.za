@@ -5,7 +5,7 @@ const cors = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m] ?? m));
 
-const ADMIN_EMAILS = ["info@ijlanga.co.za", "ij.langa11@gmail.com"];
+const ADMIN_EMAILS = ["info@ijlanga.co.za"];
 const subjects: Record<string,string> = { signup:"Confirm your IJ Langa Consulting account", confirmation:"Confirm your IJ Langa Consulting account", invite:"You are invited to IJ Langa Consulting", magiclink:"Your IJ Langa Consulting sign-in link", recovery:"Reset your IJ Langa Consulting password", email_change:"Confirm your IJ Langa email address", reauthentication:"Verify your IJ Langa Consulting account" };
 const intros: Record<string,string> = { signup:"Your IJ Langa Consulting account has been created. Please confirm your email address before signing in.", confirmation:"Your IJ Langa Consulting account has been created. Please confirm your email address before signing in.", invite:"You have been invited to create an IJ Langa Consulting account. Use the button below to accept the invitation and finish setting your password.", magiclink:"Use the secure button below to sign in. This link is one-time use and expires shortly.", recovery:"We received a request to reset your IJ Langa Consulting password. Use the button below to choose a new password.", email_change:"A request was made to change the email address on your IJ Langa Consulting account. Confirm the change using the button below.", reauthentication:"A sensitive account operation requires verification. Use the verification code below to verify your identity." };
 const buttons: Record<string,string> = { signup:"Confirm email", confirmation:"Confirm email", invite:"Accept invitation", magiclink:"Sign in securely", recovery:"Continue to password reset", email_change:"Confirm email change" };
@@ -33,7 +33,7 @@ function customConfirmUrl(action: string, hash: string, redirectTo: string) {
   if (!hash) return "";
   const type = action === "signup" || action === "confirmation" ? "email" : action;
   const qs = new URLSearchParams({ token_hash:hash, type, redirect_to:redirectTo || "https://www.ijlanga.co.za/dashboard" });
-  return "https://www.ijlanga.co.za/?account-verification=1&" + qs.toString();
+  return "https://www.ijlanga.co.za/verify?" + qs.toString();
 }
 
 Deno.serve(async (req) => {
