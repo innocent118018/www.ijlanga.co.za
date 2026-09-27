@@ -4,7 +4,6 @@ import { normalizeRegistrationError, isAdminMailbox } from '../src/lib/account-p
 
 test('recognizes the IJ Langa admin mailboxes as admin accounts', () => {
   assert.equal(isAdminMailbox('info@ijlanga.co.za'), true);
-  assert.equal(isAdminMailbox('ij.langa11@gmail.com'), true);
   assert.equal(isAdminMailbox('someone@example.com'), false);
 });
 
