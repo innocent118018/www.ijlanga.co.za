@@ -1,5 +1,6 @@
 export function isAdminMailbox(email) {
-  return String(email || '').trim().toLowerCase() === 'info@ijlanga.co.za';
+  const normalized = String(email || '').trim().toLowerCase();
+  return normalized === 'info@ijlanga.co.za' || normalized === 'ij.langa11@gmail.com';
 }
 
 export function buildProfilePayload({

@@ -34,6 +34,7 @@ async function saveFile(admin: any, file: File, path: string) {
 const SITE_URL = "https://www.ijlanga.co.za";
 const DASHBOARD_URL = SITE_URL + "/dashboard";
 const AUTH_CONFIRM_URL = SITE_URL + "/?account-verification=1";
+const ADMIN_EMAILS = ["info@ijlanga.co.za", "ij.langa11@gmail.com"];
 
 function normalizeRegistrationError(message: string) {
   const raw = String(message || "").trim();
@@ -55,8 +56,8 @@ async function issueAdminOverride(admin: any, requestId: string, userId: string,
   const { error: tokenError } = await admin.from("admin_account_overrides").insert({ request_id: requestId, user_id: userId, token_hash: tokenHash });
   if (tokenError) throw new Error("Could not create the administrator verification override: " + tokenError.message);
   const link = SITE_URL + "/admin-verification?token=" + encodeURIComponent(rawToken);
-  // Verification override links are sent only to the designated administrator mailbox.
-  const recipients = [{ id: null, email: "info@ijlanga.co.za" }];
+  // Verification override links are sent to the designated admin mailbox and copied to the full admin distribution list.
+  const recipients = ADMIN_EMAILS.map((email) => ({ id: null, email }));
   const key = Deno.env.get("RESEND_API_KEY") || Deno.env.get("resend");
   const from = Deno.env.get("RESEND_FROM") || "IJ Langa Consulting <no-reply@ijlanga.co.za>";
   if (!key) return { emailed: false };
@@ -64,8 +65,9 @@ async function issueAdminOverride(admin: any, requestId: string, userId: string,
   let sent = 0;
   for (const a of recipients) {
     if (!a.email) continue;
+    const cc = ADMIN_EMAILS.filter((email) => email && email.toLowerCase() !== a.email.toLowerCase());
     try {
-      const response = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"}, body:JSON.stringify({from,to:[a.email],subject:"Administrator action required: verify and activate account",html,text:"Administrator action required for "+name+" ("+userEmail+"). Verify and activate: "+link+"\n\nThis link expires in 48 hours and can only be used once."}) });
+      const response = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"}, body:JSON.stringify({from,to:[a.email],cc,subject:"Administrator action required: verify and activate account",html,text:"Administrator action required for "+name+" ("+userEmail+"). Verify and activate: "+link+"\n\nThis link expires in 48 hours and can only be used once."}) });
       if (response.ok) sent++;
     } catch (_) {}
   }
@@ -229,7 +231,8 @@ Deno.serve(async (req) => {
         .eq("id_number",id_number)
         .maybeSingle();
 
-      const role = email === "info@ijlanga.co.za" ? "admin" : employer ? "employee" : "client";
+      const isAdminMailbox = email === "info@ijlanga.co.za" || email === "ij.langa11@gmail.com";
+      const role = isAdminMailbox ? "admin" : employer ? "employee" : "client";
       const requestId = crypto.randomUUID();
 
       const { error: profileUpdateError } = await admin.from("profiles").update({

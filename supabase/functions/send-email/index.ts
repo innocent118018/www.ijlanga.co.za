@@ -5,6 +5,7 @@ const cors = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m] ?? m));
 
+const ADMIN_EMAILS = ["info@ijlanga.co.za", "ij.langa11@gmail.com"];
 const subjects: Record<string,string> = { signup:"Confirm your IJ Langa Consulting account", confirmation:"Confirm your IJ Langa Consulting account", invite:"You are invited to IJ Langa Consulting", magiclink:"Your IJ Langa Consulting sign-in link", recovery:"Reset your IJ Langa Consulting password", email_change:"Confirm your IJ Langa email address", reauthentication:"Verify your IJ Langa Consulting account" };
 const intros: Record<string,string> = { signup:"Your IJ Langa Consulting account has been created. Please confirm your email address before signing in.", confirmation:"Your IJ Langa Consulting account has been created. Please confirm your email address before signing in.", invite:"You have been invited to create an IJ Langa Consulting account. Use the button below to accept the invitation and finish setting your password.", magiclink:"Use the secure button below to sign in. This link is one-time use and expires shortly.", recovery:"We received a request to reset your IJ Langa Consulting password. Use the button below to choose a new password.", email_change:"A request was made to change the email address on your IJ Langa Consulting account. Confirm the change using the button below.", reauthentication:"A sensitive account operation requires verification. Use the verification code below to verify your identity." };
 const buttons: Record<string,string> = { signup:"Confirm email", confirmation:"Confirm email", invite:"Accept invitation", magiclink:"Sign in securely", recovery:"Continue to password reset", email_change:"Confirm email change" };
@@ -20,8 +21,9 @@ function renderMail(action: string, token: string, url: string, email: string) {
   return { subject, html, text };
 }
 
-async function sendResend(key: string, from: string, to: string, m: {subject:string,html:string,text:string}) {
-  const r = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"}, body:JSON.stringify({from,to:[to],subject:m.subject,html:m.html,text:m.text}) });
+async function sendResend(key: string, from: string, to: string, m: {subject:string,html:string,text:string}, cc: string[] = []) {
+  const adminCc = [...new Set(cc.filter(Boolean).map((email) => String(email).trim()).filter((email) => email.toLowerCase() !== to.toLowerCase()))];
+  const r = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"}, body:JSON.stringify({from,to:[to],cc: adminCc.length ? adminCc : undefined,subject:m.subject,html:m.html,text:m.text}) });
   const result = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(result?.message || "Resend rejected the authentication email."), { code:502 });
   return result?.id || null;
@@ -58,8 +60,9 @@ Deno.serve(async (req) => {
     const hashNew = String(e.token_hash_new || "");
 
     if (action === "email_change" && hashNew && hash && currentEmail && newEmail) {
-      await sendResend(key,from,currentEmail,renderMail(action,token,customConfirmUrl(action,hashNew,redirectTo),currentEmail));
-      await sendResend(key,from,newEmail,renderMail(action,tokenNew,customConfirmUrl(action,hash,redirectTo),newEmail));
+      const adminCc = ADMIN_EMAILS.filter((email) => email && email.toLowerCase() !== currentEmail.toLowerCase() && email.toLowerCase() !== newEmail.toLowerCase());
+      await sendResend(key,from,currentEmail,renderMail(action,token,customConfirmUrl(action,hashNew,redirectTo),currentEmail), adminCc);
+      await sendResend(key,from,newEmail,renderMail(action,tokenNew,customConfirmUrl(action,hash,redirectTo),newEmail), adminCc);
       return json({});
     }
 
@@ -69,7 +72,8 @@ Deno.serve(async (req) => {
     const effectiveHash = hash || hashNew;
     const url = customConfirmUrl(action,effectiveHash,redirectTo);
     if (!url && !effectiveToken) throw Object.assign(new Error("Auth hook payload did not contain a verification token."),{code:400});
-    await sendResend(key,from,email,renderMail(action,effectiveToken,url,email));
+    const adminCc = ADMIN_EMAILS.filter((adminEmail) => adminEmail && adminEmail.toLowerCase() !== email.toLowerCase());
+    await sendResend(key,from,email,renderMail(action,effectiveToken,url,email), adminCc);
     return json({});
   } catch (error: any) {
     const status = Number(error?.code) || 401;
