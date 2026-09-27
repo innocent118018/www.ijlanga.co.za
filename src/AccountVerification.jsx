@@ -129,7 +129,7 @@ function App(){
    try{
     const em=email.trim().toLowerCase();
     if(!em)throw new Error('Enter the email address used for your IJ Langa account.');
-    const{error}=await supabase.auth.resend({type:'signup',email:em,options:{emailRedirectTo:SITE+'/verify?redirect_to='+encodeURIComponent(DASHBOARD)}});
+    const{error}=await supabase.auth.resend({type:'signup',email:em,options:{emailRedirectTo:SITE+'/verify'}});
     if(error)throw error;
     setState('sent');setMessage('A fresh verification email has been requested. Open the newest email and click its verification link. If you do not receive it, check spam or contact info@ijlanga.co.za.');
    }catch(e){fail(e,'The verification email could not be requested. Check the email address and contact info@ijlanga.co.za if the problem continues.')}
