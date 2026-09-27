@@ -1,12 +1,11 @@
 import React,{useEffect,useState}from'react';
-import{createRoot}from'react-dom/client';
 import{supabase}from'./lib/supabase';
 import'./quote.css';
 
 const money=n=>`R ${Number(n||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}`;
 const readCart=()=>{try{return JSON.parse(localStorage.getItem('ijlanga_cart')||'[]')}catch{return[]}};
 
-function App(){
+export default function App(){
  const[session,setSession]=useState(null),[authMode,setAuthMode]=useState('login'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[fullName,setFullName]=useState(''),[company,setCompany]=useState(''),[phone,setPhone]=useState(''),[notes,setNotes]=useState(''),[cart,setCart]=useState(readCart),[quotes,setQuotes]=useState([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  useEffect(()=>{supabase.auth.getSession().then(({data})=>setSession(data.session));const{data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));return()=>data.subscription.unsubscribe()},[]);
  useEffect(()=>{if(session)loadProfileAndQuotes()},[session]);
