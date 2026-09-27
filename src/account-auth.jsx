@@ -32,9 +32,20 @@ export default function AccountAuth({onClose=false,embedded=false}){
     throw e2;
    }
    if(!data.session)throw new Error('Sign in could not be completed.');
-   let { data: profile, error: pe } = await supabase.from('profiles').select('role,is_active,approval_status').eq('id',data.user.id).maybeSingle();
+   let { data: profile, error: pe } = await supabase.from('profiles').select('role,is_active,approval_status,email_verified_at').eq('id',data.user.id).maybeSingle();
    if (pe) throw pe;
-   if (!profile && isAdminMailbox(email)) {
+   const adminUser = isAdminMailbox(email);
+   if (profile && profile.is_active === false && profile.email_verified_at) {
+     const { data: activatedProfile, error: updatedError } = await supabase.from('profiles').update({
+       is_active: true,
+       approval_status: 'approved',
+       approved_at: profile.approved_at || new Date().toISOString(),
+       updated_at: new Date().toISOString(),
+     }).eq('id', data.user.id).select().single();
+     if (updatedError) throw updatedError;
+     profile = activatedProfile;
+   }
+   if (!profile && adminUser) {
      const defaultAdminProfile = {
        id: data.user.id,
        email,
@@ -51,6 +62,17 @@ export default function AccountAuth({onClose=false,embedded=false}){
    }
    if (!profile) {
      throw new Error('Your account profile has not been prepared yet. Please contact IJ Langa Consulting.');
+   }
+   if (adminUser || profile.role === 'admin') {
+     const { data: activatedProfile, error: activatedError } = await supabase.from('profiles').update({
+       role: 'admin',
+       is_active: true,
+       approval_status: 'approved',
+       approved_at: new Date().toISOString(),
+       updated_at: new Date().toISOString(),
+     }).eq('id', data.user.id).select().single();
+     if (activatedError) throw activatedError;
+     profile = activatedProfile;
    }
    if (profile.is_active === false) {
     await supabase.auth.signOut();

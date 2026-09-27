@@ -53,8 +53,15 @@ Deno.serve(async(req)=>{
       profile=payload;
       profileRepaired=true;
     }else{
-      const {error:verifiedError}=await admin.from("profiles").update({email_verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",user.id);
+      const {error:verifiedError}=await admin.from("profiles").update({
+        email_verified_at:new Date().toISOString(),
+        is_active:true,
+        approval_status:"approved",
+        approved_at: profile.approved_at || new Date().toISOString(),
+        updated_at:new Date().toISOString(),
+      }).eq("id",user.id);
       if(verifiedError) return json({error:"Verified email, but verification could not be recorded: "+verifiedError.message},500);
+      profile = { ...profile, email_verified_at: new Date().toISOString(), is_active: true, approval_status: "approved", approved_at: profile.approved_at || new Date().toISOString() };
     }
 
     const {error:updateError}=await admin.auth.admin.updateUserById(user.id,{

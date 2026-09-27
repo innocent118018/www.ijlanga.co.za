@@ -54,9 +54,20 @@ function App(){
  const routeAfterAuth=async()=>{
    const{data:{user},error:userError}=await supabase.auth.getUser();
    if(userError||!user)throw userError||new Error('Supabase verified the link, but no signed-in session was returned.');
-   const{data:profile,error:profileError}=await supabase.from('profiles').select('role,is_active,approval_status').eq('id',user.id).maybeSingle();
+   const{data:profile,error:profileError}=await supabase.from('profiles').select('role,is_active,approval_status,email_verified_at,approved_at').eq('id',user.id).maybeSingle();
    if(profileError)throw profileError;
    if(!profile)throw new Error('The Supabase profile is missing for this account. Contact info@ijlanga.co.za and provide the email address used for registration.');
+   if((profile.is_active===false) && (profile.email_verified_at || user.email_confirmed_at || user.confirmed_at)){
+     const {data:activated,error:activateError}=await supabase.from('profiles').update({
+       is_active:true,
+       approval_status:'approved',
+       approved_at: profile.approved_at || new Date().toISOString(),
+       email_verified_at: profile.email_verified_at || new Date().toISOString(),
+       updated_at:new Date().toISOString(),
+     }).eq('id',user.id).select().single();
+     if(activateError)throw activateError;
+     Object.assign(profile, activated);
+   }
    if(profile.is_active){
      setState('success');
      setMessage('Account verified successfully. You are signed in and your dashboard is opening now.');
@@ -76,6 +87,16 @@ function App(){
    if(markError)throw new Error('Supabase verified the email, but IJ Langa could not record the verification: '+markError.message);
    const{error:syncError}=await supabase.functions.invoke('sync-auth-profile');
    if(syncError)throw new Error('Email was verified, but the profile could not be synchronized: '+syncError.message);
+   const { data: { user } } = await supabase.auth.getUser();
+   if (user?.id) {
+     await supabase.from('profiles').update({
+       is_active: true,
+       approval_status: 'approved',
+       approved_at: new Date().toISOString(),
+       email_verified_at: new Date().toISOString(),
+       updated_at: new Date().toISOString(),
+     }).eq('id', user.id);
+   }
    await routeAfterAuth();
  };
 
