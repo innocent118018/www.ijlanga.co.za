@@ -1,4 +1,4 @@
-import React,{useEffect,useState}from'react';import{createRoot}from'react-dom/client';import{Menu,X,ShoppingCart,ChevronDown,UserRound,Search,ArrowRight,FileText,WalletCards,ClipboardList,BriefcaseBusiness,Building2,Calculator,Landmark,ShieldCheck,Plus,Minus,Trash2,FilePlus2,Phone,Mail,MapPin}from'lucide-react';import{supabase}from'./lib/supabase';import AccountAuth from'./account-auth.jsx';import AccountVerification from'./AccountVerification.jsx';import AdminVerification from'./AdminVerification.jsx';import Dashboard from'./dashboard-main.jsx';import AdminDashboard from'./AdminDashboard.jsx';import { normalizePath, resolveLegacyRoute } from './lib/route-utils.js';import'./styles.css';
+import React,{useEffect,useState}from'react';import{createRoot}from'react-dom/client';import{Menu,X,ShoppingCart,ChevronDown,UserRound,Search,ArrowRight,FileText,WalletCards,ClipboardList,BriefcaseBusiness,Building2,Calculator,Landmark,ShieldCheck,Plus,Minus,Trash2,FilePlus2,Phone,Mail,MapPin}from'lucide-react';import{supabase}from'./lib/supabase';import AccountAuth from'./account-auth.jsx';import AccountVerification from'./AccountVerification.jsx';import AdminVerification from'./AdminVerification.jsx';import Dashboard from'./dashboard-main.jsx';import AdminDashboard from'./AdminDashboard.jsx';import { normalizePath, resolveLegacyRoute } from './lib/route-utils.js';import'./styles.css';import'./admin.css';
 const groups=[['Financial Statements: SMMEs',FileText],['Retainer Fees',WalletCards],['Administration',ClipboardList],['Business Consultation',BriefcaseBusiness],['Secretarial Services',Building2],['Taxation Services',Calculator],['Payroll Administration',Landmark],['Accounting Services',ShieldCheck]];
 const fallback=[['Company registration','Secretarial Services','R 695.00'],['Tax Clearance Certificate','Taxation Services','R 520.00'],['VAT Registration','Taxation Services','R 3 000.00'],['Monthly bank reconciliation','Accounting Services','R 2 500.00'],['PAYE and UIF Registration','Payroll Administration','R 3 000.00'],['Company profile for tenders','Business Consultation','R 1 800.00'],['CSD registration','Secretarial Services','R 1 265.00'],['COIDA registration','Secretarial Services','R 2 500.00'],['CIDB registration','Secretarial Services','R 2 500.00'],['Corporate income tax registration','Taxation Services','R 1 950.00'],['VAT returns','Taxation Services','R 1 950.00'],['Tender application support','Business Consultation','R 5 000.00']].map(([name,category,price],i)=>({id:`fallback-${i}`,sku:`IJL-${String(i+1).padStart(3,'0')}`,slug:name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name,category,price:Number(price.replace(/[^0-9.]/g,'')),priceLabel:price,icon:groups.find(g=>g[0]===category)?.[1]||FileText}));
 const iconFor=c=>groups.find(g=>g[0]===c)?.[1]||FileText;const money=n=>`R ${Number(n||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}`;
@@ -50,8 +50,28 @@ function RouteShell(){
     return <AccountVerification />;
   }
 
-  if (pathname === '/admin' || pathname === '/admin/dashboard' || pathname === '/admin/users' || pathname === '/admin/approvals' || pathname.startsWith('/admin/')) {
-    return <AdminDashboard />;
+  // Admin pages must use the dedicated authenticated entry points. Do not render the
+  // dashboard directly from the public SPA route, otherwise the admin UI can be reached
+  // without the AdminAuth gate in admin-main.jsx.
+  if (pathname === '/admin' || pathname === '/admin/dashboard') {
+    window.location.replace('/admin.html');
+    return null;
+  }
+  if (pathname === '/admin/users' || pathname === '/admin/approvals') {
+    window.location.replace('/admin-users.html');
+    return null;
+  }
+  if (pathname === '/admin/shelf') {
+    window.location.replace('/admin-shelf.html');
+    return null;
+  }
+  if (pathname === '/admin/integrations') {
+    window.location.replace('/integration.html');
+    return null;
+  }
+  if (pathname.startsWith('/admin/')) {
+    window.location.replace('/admin.html');
+    return null;
   }
 
   if (pathname === '/dashboard' || pathname === '/app' || pathname === '/app/dashboard' || pathname.startsWith('/app')) {
