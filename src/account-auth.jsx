@@ -54,9 +54,9 @@ async function requestPasswordReset(e){
   const email=form.email.trim().toLowerCase();
   if(!email){setBusy(false);setError('Enter your email address to request a password reset.');return}
   try{
-   const{data,error:e2}=await supabase.functions.invoke('request-password-reset',{body:{email}});
+   const{error:e2}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:'https://www.ijlanga.co.za/verify'});
    if(e2)throw e2;
-   setNotice(data?.message||'If an account exists for these details, a password-reset email has been sent. Check your inbox and spam folder.');
+   setNotice('If an account exists for this email address, a password-reset email has been sent. Open the newest email and use the secure link or one-time code on the verification page.');
   }catch(e){setError(e.message||'Could not start password reset. Please contact info@ijlanga.co.za.')}
   finally{setBusy(false)}
  }
