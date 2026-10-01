@@ -60,9 +60,8 @@ Deno.serve(async (req) => {
     const hashNew = String(e.token_hash_new || "");
 
     if (action === "email_change" && hashNew && hash && currentEmail && newEmail) {
-      const adminCc = ADMIN_EMAILS.filter((email) => email && email.toLowerCase() !== currentEmail.toLowerCase() && email.toLowerCase() !== newEmail.toLowerCase());
-      await sendResend(key,from,currentEmail,renderMail(action,token,customConfirmUrl(action,hashNew,redirectTo),currentEmail), adminCc);
-      await sendResend(key,from,newEmail,renderMail(action,tokenNew,customConfirmUrl(action,hash,redirectTo),newEmail), adminCc);
+      await sendResend(key,from,currentEmail,renderMail(action,token,customConfirmUrl(action,hashNew,redirectTo),currentEmail));
+      await sendResend(key,from,newEmail,renderMail(action,tokenNew,customConfirmUrl(action,hash,redirectTo),newEmail));
       return json({});
     }
 
@@ -72,8 +71,7 @@ Deno.serve(async (req) => {
     const effectiveHash = hash || hashNew;
     const url = customConfirmUrl(action,effectiveHash,redirectTo);
     if (!url && !effectiveToken) throw Object.assign(new Error("Auth hook payload did not contain a verification token."),{code:400});
-    const adminCc = ADMIN_EMAILS.filter((adminEmail) => adminEmail && adminEmail.toLowerCase() !== email.toLowerCase());
-    await sendResend(key,from,email,renderMail(action,effectiveToken,url,email), adminCc);
+    await sendResend(key,from,email,renderMail(action,effectiveToken,url,email));
     return json({});
   } catch (error: any) {
     const status = Number(error?.code) || 401;
