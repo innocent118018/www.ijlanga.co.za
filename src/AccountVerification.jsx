@@ -142,10 +142,9 @@ function App(){
    try{
     const em=email.trim().toLowerCase();
     if(!em)throw new Error('Enter the email address used for your IJ Langa account.');
-    const response=await fetch(RESET_FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data?.error||'The password-reset request could not be completed.');
-    setState('sent');setMessage(data?.message||'If an account exists, a password-reset email has been sent. Open the newest email and use the link to choose a new password.');
+    const{error}=await supabase.auth.resetPasswordForEmail(em,{redirectTo:SITE+'/verify'});
+    if(error)throw error;
+    setState('sent');setMessage('If an account exists for this email address, a password-reset email has been sent. Open the newest email and use the secure link or one-time code below.');
    }catch(e){fail(e,'The password-reset request could not be completed. Contact info@ijlanga.co.za if the problem continues.')}
    finally{setBusy(false)}
  }
