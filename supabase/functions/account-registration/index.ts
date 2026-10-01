@@ -87,37 +87,52 @@ async function sendSignupConfirmation(admin: any, email: string, password: strin
       user_metadata: metadata,
     });
     if (updateError) throw new Error("Could not repair the existing authentication account: " + updateError.message);
-
-    const { data, error } = await admin.auth.admin.generateLink({
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
       options: { redirectTo: DASHBOARD_URL },
     });
-    if (error || !data?.properties?.hashed_token || !data?.user?.id) {
-      throw new Error("Could not generate the email verification link for the existing account: " + (error?.message || "missing verification token"));
+    if (linkError || !linkData?.properties?.hashed_token || !linkData?.user?.id) {
+      throw new Error("Could not generate the email verification link for the existing account: " + (linkError?.message || "missing verification token"));
     }
-    user = data.user;
-    tokenHash = data.properties.hashed_token;
-    token = data.properties.email_otp || "";
+    user = linkData.user;
+    tokenHash = linkData.properties.hashed_token;
+    token = linkData.properties.email_otp || "";
   } else {
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: "signup",
+    // Create the Auth user explicitly. generateLink({type:'signup'}) can create
+    // the Auth row and fire the profiles trigger at the same time; doing the
+    // creation explicitly removes that race and prevents profiles_pkey errors.
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
-      options: { data: metadata, redirectTo: DASHBOARD_URL },
+      phone: String(metadata.phone || ""),
+      email_confirm: false,
+      phone_confirm: false,
+      user_metadata: metadata,
     });
-    if (error || !data?.properties?.hashed_token || !data?.user?.id) {
-      throw new Error("Could not generate the email verification link: " + (error?.message || "missing verification token"));
+    if (createError || !created?.user?.id) {
+      throw new Error("Could not create the authentication account: " + (createError?.message || "Supabase did not return a user ID"));
     }
-    user = data.user;
-    tokenHash = data.properties.hashed_token;
-    token = data.properties.email_otp || "";
+    user = created.user;
+
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo: DASHBOARD_URL },
+    });
+    if (linkError || !linkData?.properties?.hashed_token) {
+      throw new Error("Could not generate the email verification link: " + (linkError?.message || "missing verification token"));
+    }
+    tokenHash = linkData.properties.hashed_token;
+    token = linkData.properties.email_otp || "";
   }
 
-  const linkType = existingUserId ? "magiclink" : "email";
+  // magiclink verification is handled through the current email OTP/token-hash
+  // flow; the verification page exchanges it for a session and then records
+  // email_verified_at in public.profiles.
   const link = AUTH_CONFIRM_URL + "?" + new URLSearchParams({
     token_hash: tokenHash,
-    type: linkType,
+    type: "email",
     redirect_to: DASHBOARD_URL,
   }).toString();
 
