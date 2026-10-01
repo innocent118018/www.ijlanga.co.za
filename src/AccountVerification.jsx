@@ -45,10 +45,10 @@ function App(){
  const fail=(e,fallback)=>{
   const text=e?.message||fallback;
   const safeText = /duplicate key value violates unique constraint|profiles_pkey|Could not create or prepare the authentication account|Account profile could not be prepared/i.test(String(text))
-    ? 'We found an existing account associated with this email address. Please sign in or contact IJ Langa Consulting if you believe this is incorrect.'
+    ? 'We found an existing account associated with this email address. Please sign in or contact info@ijlanga.co.za if you believe this is incorrect.'
     : text;
-  setState('error');setMessage(safeText);
-  try{window.alert('Account verification failed: '+safeText)}catch{}
+  setState(type==='recovery'?'recovery-options':'error');setMessage(safeText);
+  try{window.alert((type==='recovery'?'Password recovery failed: ':'Account verification failed: ')+safeText)}catch{}
  };
 
  const routeAfterAuth=async()=>{
@@ -58,10 +58,11 @@ function App(){
    if(profileError)throw profileError;
    if(!profile)throw new Error('The Supabase profile is missing for this account. Contact info@ijlanga.co.za and provide the email address used for registration.');
    if(profile.is_active){
+     const destination = profile.role==='admin' ? '/admin' : profile.role==='client' ? '/app' : target;
      setState('success');
      setMessage('Account verified successfully. You are signed in and your dashboard is opening now.');
      try{window.alert('Account verified successfully. You are now signed in.')}catch{}
-     setTimeout(()=>{window.location.href=target},700);
+     setTimeout(()=>{window.location.href=destination},700);
    }else{
      setState('pending');
      setMessage(profile.approval_status==='pending'
@@ -203,7 +204,7 @@ function App(){
    {state==='recovery-request'&&<form className="reset-form" onSubmit={requestRecovery}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><button disabled={busy}>{busy?'Sending…':'Send password-reset link'}</button></form>}
    {state==='password'&&<form className="reset-form" onSubmit={changePassword}><label>New password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required autoComplete="new-password"/></label><label>Confirm new password<input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={8} required autoComplete="new-password"/></label><button disabled={busy}>{busy?'Saving…':'Set new password'}</button></form>}
    {state==='recovery-options'&&<form className="reset-form" onSubmit={verifyRecoveryCode}><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>One-time code<input inputMode="numeric" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} maxLength={10} required/></label><button disabled={busy}>{busy?'Verifying…':'Verify reset code'}</button></form>}
-   {(state==='sent'||state==='pending'||state==='error')&&<div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><a href={SIGNIN}>Return to secure sign in</a>{state==='error'&&<a href="/verify">Try verification again</a>}</div>}
+   {(state==='sent'||state==='pending'||state==='error')&&<div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}><a href={SIGNIN}>Return to secure sign in</a>{type==='recovery'&&(state==='sent'||state==='error')&&<button type="button" onClick={()=>{setState('recovery-options');setMessage('Enter the one-time password reset code from the newest email.')}}>Use reset code instead</button>}{state==='error'&&<a href="/verify">Try verification again</a>}</div>}
    {state!=='password'&&state!=='recovery-options'&&type!=='recovery'&&<p style={{fontSize:12,marginTop:24}}>Need help? Contact <strong>info@ijlanga.co.za</strong>.</p>}
  </section></main>
 }
