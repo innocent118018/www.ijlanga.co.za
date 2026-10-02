@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test"
+    "preview": "npm run build && wrangler dev",
+    "test": "node --test",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",
@@ -19,6 +20,8 @@
   },
   "devDependencies": {
     "esbuild": "latest",
-    "supabase": "^2.118.0"
+    "supabase": "^2.118.0",
+    "wrangler": "^4.146.0",
+    "@cloudflare/vite-plugin": "^1.8.0"
   }
 }
