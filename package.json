@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "esbuild": "latest",
-    "supabase": "^2.118.0"
+    "supabase": "^2.118.0",
+    "wrangler": "^4.146.0",
+    "@cloudflare/vite-plugin": "^1.8.0"
   }
 }
