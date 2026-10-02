@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { cloudflare } from '@cloudflare/vite-plugin';
 
 const logoCss = `
 /* IJ-LANGA-BRAND-LOGO: official logo in header and footer */
@@ -48,6 +49,7 @@ export default defineConfig({
       }
     },
     react(),
+    cloudflare(),
     {
       name: 'ijlanga-logo-branding',
       transform(code, id) {
