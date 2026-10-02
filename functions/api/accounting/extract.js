@@ -12,11 +12,15 @@ function json(data, status = 200) {
 async function authenticate(request, env) {
   const authorization = request.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer ")) return false;
-  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return false;
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  // Existing Cloudflare setup already has the Vite-prefixed anon key. Reuse it as a
+  // fallback so the API does not require a duplicate dashboard secret.
+  const anonKey = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) return false;
 
-  const response = await fetch(new URL("/auth/v1/user", env.SUPABASE_URL), {
+  const response = await fetch(new URL("/auth/v1/user", supabaseUrl), {
     headers: {
-      apikey: env.SUPABASE_ANON_KEY,
+      apikey: anonKey,
       authorization,
     },
   });
