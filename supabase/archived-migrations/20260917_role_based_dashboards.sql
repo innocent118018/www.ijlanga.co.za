@@ -40,9 +40,9 @@ create index if not exists idx_tasks_created_by on public.tasks(created_by);
 create index if not exists idx_tasks_customer_id on public.tasks(customer_id);
 create index if not exists idx_commissions_reseller_id on public.reseller_commissions(reseller_id);
 
- drop policy if exists "Employers can read team profiles" on public.profiles;
+drop policy if exists "Employers can read team profiles" on public.profiles;
 create policy "Employers can read team profiles" on public.profiles for select to authenticated
-using (employer_id = (select auth.uid()) or id = (select auth.uid()));
+using (id = auth.uid() or employer_id = auth.uid() or is_admin());
 
 drop policy if exists "Admins manage tasks" on public.tasks;
 create policy "Admins manage tasks" on public.tasks for all to authenticated using (is_admin()) with check (is_admin());

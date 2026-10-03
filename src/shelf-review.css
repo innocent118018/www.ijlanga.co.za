@@ -1,0 +1,28 @@
+.shelf-review-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(9,23,36,.84)}
+.shelf-review-viewer{position:relative;isolation:isolate;width:min(960px,100%);height:min(88vh,900px);overflow:hidden;display:flex;flex-direction:column;background:#fbfcfd;border:1px solid #d6dde3;border-radius:10px;box-shadow:0 25px 80px rgba(0,0,0,.3);color:#172a39;user-select:none;-webkit-user-select:none}
+.shelf-review-header{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 26px;background:#fff;border-bottom:1px solid #dce2e7}
+.shelf-review-header span{font-size:10px;font-weight:800;letter-spacing:.12em;color:#9a7220}
+.shelf-review-header h2{margin:6px 0 0;font-size:22px}
+.shelf-review-header button{display:grid;place-items:center;width:38px;height:38px;border:1px solid #d6dde3;border-radius:7px;background:#fff;color:#203544;cursor:pointer}
+.shelf-review-content{position:relative;z-index:1;overflow:auto;padding:16px 26px 36px;overscroll-behavior:contain}
+.shelf-review-section{position:relative;z-index:1;padding:14px 0;border-bottom:1px solid #e1e6ea}
+.shelf-review-section h3{margin:0 0 7px;font-size:14px;color:#15344a}
+.shelf-review-section p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;color:#354b5b;font-size:14px}
+.shelf-review-watermark{position:absolute;inset:-40px;z-index:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:140px;align-content:center;justify-items:center;overflow:hidden;pointer-events:none;opacity:.085;transform:rotate(-24deg)}
+.shelf-review-watermark span{align-self:center;white-space:nowrap;font-size:12px;font-weight:800;color:#17374d}
+@media(max-width:640px){.shelf-review-backdrop{padding:8px}.shelf-review-viewer{height:94vh}.shelf-review-header{padding:17px}.shelf-review-header h2{font-size:18px}.shelf-review-content{padding:12px 17px 25px}.shelf-review-watermark{grid-template-columns:1fr}}
+@media print{.shelf-review-backdrop{display:none!important}}
+.shelf-admin-review-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:16px;background:rgba(9,23,36,.72)}
+.shelf-admin-review{width:min(900px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid #dce3e6;border-radius:8px;padding:22px;box-shadow:0 22px 70px rgba(0,0,0,.25)}
+.shelf-admin-review>header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:15px;border-bottom:1px solid #e1e6e8}
+.shelf-admin-review>header span{font-size:10px;font-weight:800;letter-spacing:.1em;color:#98722a}
+.shelf-admin-review>header h2{margin:5px 0;font-size:20px}
+.shelf-admin-review>header button{display:grid;place-items:center;width:36px;height:36px;border:1px solid #d8e0e3;border-radius:6px;background:#fff;cursor:pointer}
+.shelf-admin-review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.shelf-admin-review-fields label{display:grid;align-content:start;gap:6px;font-size:12px;font-weight:800;color:#284353}
+.shelf-admin-review-fields small{font-size:10px;line-height:1.4;font-weight:500;color:#70818b}
+.shelf-admin-review-fields textarea{width:100%;min-height:96px;padding:10px;border:1px solid #ccd7db;border-radius:6px;resize:vertical;font:13px/1.5 Inter,system-ui,sans-serif}
+.shelf-admin-review>footer{display:flex;justify-content:flex-end;gap:9px;padding-top:12px;border-top:1px solid #e1e6e8}
+.shelf-admin-review>footer button{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #cbd6da;border-radius:6px;background:#fff;color:#18394c;font-weight:750;cursor:pointer}
+.shelf-admin-review>footer button[type=submit]{background:#173d50;border-color:#173d50;color:#fff}
+@media(max-width:640px){.shelf-admin-review{padding:16px}.shelf-admin-review-fields{grid-template-columns:1fr}}

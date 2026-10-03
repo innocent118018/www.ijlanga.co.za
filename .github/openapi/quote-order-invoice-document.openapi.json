@@ -1,0 +1,382 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IJ Langa Platform API",
+    "version": "1.0.0",
+    "description": "Resource-based API contract for quotes, orders, invoices, payments and documents."
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error", "message", "status"],
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" },
+          "request_id": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "minimum": 1 },
+          "per_page": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "total": { "type": "integer" },
+          "next_cursor": { "type": "string", "nullable": true }
+        }
+      },
+      "Quote": {
+        "type": "object",
+        "required": ["id", "quote_number", "customer_id", "status", "total"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "quote_number": { "type": "string" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["draft", "pending_review", "sent", "accepted", "rejected", "expired"] },
+          "subtotal": { "type": "number" },
+          "vat_amount": { "type": "number" },
+          "total": { "type": "number" },
+          "notes": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": ["id", "order_number", "customer_id", "status", "total"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "order_number": { "type": "string" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "quote_id": { "type": "string", "format": "uuid", "nullable": true },
+          "status": { "type": "string", "enum": ["draft", "pending", "approved", "in_progress", "awaiting_payment", "paid", "partially_paid", "cancelled", "completed"] },
+          "subtotal": { "type": "number" },
+          "vat_amount": { "type": "number" },
+          "total": { "type": "number" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Invoice": {
+        "type": "object",
+        "required": ["id", "invoice_number", "customer_id", "status", "total"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "invoice_number": { "type": "string" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "order_id": { "type": "string", "format": "uuid", "nullable": true },
+          "status": { "type": "string", "enum": ["draft", "issued", "paid", "partially_paid", "overdue", "cancelled"] },
+          "issue_date": { "type": "string", "format": "date-time" },
+          "due_date": { "type": "string", "format": "date-time", "nullable": true },
+          "balance_due": { "type": "number" },
+          "total": { "type": "number" }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": ["id", "customer_id", "provider", "amount", "status"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "order_id": { "type": "string", "format": "uuid", "nullable": true },
+          "invoice_id": { "type": "string", "format": "uuid", "nullable": true },
+          "provider": { "type": "string", "enum": ["payfast", "ikhokha", "manual"] },
+          "provider_reference": { "type": "string", "nullable": true },
+          "amount": { "type": "number" },
+          "currency": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "authorized", "paid", "failed", "cancelled", "refunded"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "required": ["id", "customer_id", "document_type", "file_name", "storage_path"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "document_type": { "type": "string" },
+          "file_name": { "type": "string" },
+          "storage_path": { "type": "string" },
+          "mime_type": { "type": "string", "nullable": true },
+          "retention_until": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/quotes": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "List quotes",
+        "parameters": [
+          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "customer_id", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of quotes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Quote" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Create a quote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_id", "items"],
+                "properties": {
+                  "customer_id": { "type": "string", "format": "uuid" },
+                  "notes": { "type": "string" },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["service_id", "quantity"],
+                      "properties": {
+                        "service_id": { "type": "string", "format": "uuid" },
+                        "quantity": { "type": "integer", "minimum": 1 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/quotes/{quote_id}": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Get quote by id",
+        "parameters": [{ "in": "path", "name": "quote_id", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Quote", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Update quote",
+        "parameters": [{ "in": "path", "name": "quote_id", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["draft", "pending_review", "sent", "accepted", "rejected", "expired"] },
+                  "notes": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated quote", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } } } }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "List orders",
+        "responses": {
+          "200": {
+            "description": "List of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Create order from accepted quote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_id", "quote_id"],
+                "properties": {
+                  "customer_id": { "type": "string", "format": "uuid" },
+                  "quote_id": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Order created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } }
+        }
+      }
+    },
+    "/orders/{order_id}": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Get order by id",
+        "parameters": [{ "in": "path", "name": "order_id", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Order", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } } }
+        }
+      }
+    },
+    "/invoices": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "List invoices",
+        "responses": {
+          "200": {
+            "description": "List of invoices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Invoice" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoice_id}": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Get invoice by id",
+        "parameters": [{ "in": "path", "name": "invoice_id", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Invoice", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Invoice" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/documents": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "List documents",
+        "responses": {
+          "200": {
+            "description": "List of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Document" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Create document upload session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_id", "document_type", "file_name"],
+                "properties": {
+                  "customer_id": { "type": "string", "format": "uuid" },
+                  "document_type": { "type": "string" },
+                  "file_name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Document upload session created", "content": { "application/json": { "schema": { "type": "object", "properties": { "document_id": { "type": "string", "format": "uuid" }, "upload_url": { "type": "string" } } } } } }
+        }
+      }
+    },
+    "/documents/{document_id}": {
+      "get": {
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Get document metadata",
+        "parameters": [{ "in": "path", "name": "document_id", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Document metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Document" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  }
+}
