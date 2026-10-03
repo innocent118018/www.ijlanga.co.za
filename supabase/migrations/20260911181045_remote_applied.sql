@@ -1,0 +1,2 @@
+-- Reconciliation marker for an already-applied remote migration.
+-- Original SQL was unavailable in fetched Git refs; see supabase/schemas.
