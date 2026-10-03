@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 test('profiles read policy avoids recursive self-subqueries', () => {
-  const migrationPath = path.join(process.cwd(), 'supabase/migrations/20260927_profiles_policy_recursion_fix.sql');
+  const migrationPath = path.join(process.cwd(), 'supabase/archived-migrations/20260927_profiles_policy_recursion_fix.sql');
   const sql = fs.readFileSync(migrationPath, 'utf8');
 
   assert.match(
@@ -16,10 +16,10 @@ test('profiles read policy avoids recursive self-subqueries', () => {
 });
 
 test('profile authorization guard blocks privileged field changes and override records stay restricted', () => {
-  const migrationDir = path.join(process.cwd(), 'supabase/migrations');
-  const files = fs.readdirSync(migrationDir).filter((file) => file.endsWith('.sql'));
+  const migrationDirs = ['supabase/migrations', 'supabase/archived-migrations'].map((directory) => path.join(process.cwd(), directory));
+  const files = migrationDirs.flatMap((directory) => fs.readdirSync(directory).map((file) => path.join(directory, file))).filter((file) => file.endsWith('.sql'));
   const sql = files
-    .map((file) => fs.readFileSync(path.join(migrationDir, file), 'utf8'))
+    .map((file) => fs.readFileSync(file, 'utf8'))
     .join('\n\n');
 
   assert.match(sql, /create\s+or\s+replace\s+function\s+public\.protect_profile_authorization_fields\s*\(/is);
