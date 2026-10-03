@@ -1,0 +1,15 @@
+import React,{useEffect,useState}from'react';
+import{ArrowLeft,ClipboardCheck,RefreshCw}from'lucide-react';
+import{supabase}from'./lib/supabase';
+import AdminShelfReviewEditor from'./AdminShelfReviewEditor';
+import'./admin-users.css';
+
+export default function AdminShelfReviews(){
+ const[session,setSession]=useState(null),[profile,setProfile]=useState(null),[listings,setListings]=useState([]),[reviews,setReviews]=useState({}),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ async function init(){const{data:{session:current}}=await supabase.auth.getSession();setSession(current);if(!current){setLoading(false);return}const{data:currentProfile}=await supabase.from('profiles').select('id,role,is_active').eq('id',current.user.id).maybeSingle();setProfile(currentProfile);if(currentProfile?.role==='admin')await load();setLoading(false)}
+ async function load(){setError('');const[listResult,reviewResult]=await Promise.all([supabase.from('shelf_companies').select('id,company_name,registration_number,status,auction_start,auction_end').order('created_at',{ascending:false}),supabase.from('shelf_company_reviews').select('shelf_company_id,updated_at')]);if(listResult.error||reviewResult.error){setError(listResult.error?.message||reviewResult.error?.message||'Could not load review packs.');return}setListings(listResult.data||[]);setReviews(Object.fromEntries((reviewResult.data||[]).map(review=>[review.shelf_company_id,review])))}
+ useEffect(()=>{init()},[]);
+ if(loading)return <div className="users-loading">Loading buyer review packs…</div>;
+ if(!session||profile?.role!=='admin')return <main className="users-auth"><div className="users-card"><h1>Administrator access required</h1><p>Sign in as an administrator to manage confidential buyer review packs.</p><a href="/login">Secure sign in</a></div></main>;
+ return <main className="users-page"><header className="users-top"><div><span>IJ LANGA CONSULTING</span><h1>Buyer review packs</h1><p>Confidential business, financial, valuation, ownership and material-matters review.</p></div><div><button onClick={load}><RefreshCw size={15}/> Refresh</button><a href="/admin"><ArrowLeft size={15}/> Admin dashboard</a></div></header>{error&&<div className="users-error">{error}</div>}<section className="users-card users-table-card"><div className="users-head"><div><span>CONFIDENTIAL BUYER INFORMATION</span><h2>Review packs by listing</h2></div><ClipboardCheck size={20}/></div><div className="users-table-wrap"><table><thead><tr><th>Company</th><th>Registration</th><th>Auction status</th><th>Review updated</th><th>Review pack</th></tr></thead><tbody>{listings.map(listing=>{const review=reviews[listing.id];return <tr key={listing.id}><td><b>{listing.company_name}</b></td><td>{listing.registration_number}</td><td>{listing.status}</td><td>{review?new Date(review.updated_at).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'}):'Not prepared'}</td><td><AdminShelfReviewEditor listing={listing}/></td></tr>})}</tbody></table></div></section></main>;
+}

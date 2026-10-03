@@ -3,3 +3,14 @@ verify_jwt = true
 
 [functions.ikhokha-webhook]
 verify_jwt = false
+
+[functions.accounting-import-payfast-itn]
+verify_jwt = false
+
+[functions.accounting-import-ikhokha-webhook]
+verify_jwt = false
+
+[db.migrations]
+schema_paths = [
+  "schemas",
+]

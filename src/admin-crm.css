@@ -17,3 +17,74 @@
  .admin-quote-line>label:nth-child(3){grid-column:1/3}
  .admin-quote-line>button{grid-column:3;grid-row:2}
 }
+.admin-record-form{width:min(820px,100%);max-height:min(90vh,900px);overflow:auto;box-sizing:border-box}
+.admin-record-form>label{display:grid;gap:6px;margin-top:12px;color:#475569;font-size:12px;font-weight:800}
+.admin-record-form input,.admin-record-form textarea,.admin-record-form select{width:100%;min-width:0;box-sizing:border-box;padding:11px 12px;border:1px solid #dbe2ea;border-radius:8px;background:#fff;color:#15243a;font:inherit;font-weight:500}
+.admin-record-form textarea{resize:vertical}
+.admin-record-form h3{margin:18px 0 8px;font-size:14px}
+.admin-record-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:16px 0;padding:14px;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px}
+.admin-record-summary span{display:grid;gap:5px;color:#64748b;font-size:12px}
+.admin-record-summary strong{color:#172b42;font-size:14px}
+.admin-row-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.admin-documents-form{width:min(720px,100%);max-height:min(90vh,900px);overflow:auto;box-sizing:border-box}
+.admin-document-upload{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto;align-items:end;gap:10px;margin:18px 0;padding:14px;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px}
+.admin-document-upload>label{display:grid;gap:6px;color:#475569;font-size:12px;font-weight:800}
+.admin-document-upload input:not([type=file]){width:100%;box-sizing:border-box;padding:10px;border:1px solid #dbe2ea;border-radius:8px;background:#fff;font:inherit;font-weight:500}
+.admin-document-file{position:relative;min-height:40px;align-content:center;padding:0 10px;border:1px solid #dbe2ea;border-radius:8px;background:#fff;cursor:pointer}
+.admin-document-file input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.admin-document-upload small{grid-column:1/-1;color:#64748b}
+.admin-document-upload .admin-btn{white-space:nowrap}
+.admin-documents-form .admin-list-row strong{display:flex;align-items:center;gap:6px}
+.admin-document-import-form{width:min(1040px,100%);max-height:min(92vh,1000px);overflow:auto;box-sizing:border-box}
+.admin-document-import-form>p{max-width:760px;color:#64748b;line-height:1.5}
+.admin-document-import-picker{position:relative;display:inline-flex;align-items:center;gap:8px;margin:12px 0;padding:10px 14px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#172b42;font-size:13px;font-weight:800;cursor:pointer}
+.admin-document-import-picker input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.admin-document-import-summary{display:flex;justify-content:space-between;gap:12px;margin:8px 0;color:#334155;font-size:13px}
+.admin-document-import-summary span{color:#64748b}
+.admin-document-import-list{display:grid;gap:8px;max-height:52vh;overflow:auto;padding:2px}
+.admin-document-import-row{display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(250px,1fr) minmax(170px,.8fr);align-items:center;gap:12px;padding:12px;border:1px solid #e2e8f0;border-radius:6px;background:#fff}
+.admin-document-import-file{display:grid;grid-template-columns:18px minmax(0,1fr) 28px;align-items:start;gap:8px;color:#334155}
+.admin-document-import-file>div{display:grid;gap:4px;min-width:0}
+.admin-document-import-file strong{overflow-wrap:anywhere;font-size:13px}
+.admin-document-import-file small,.admin-document-import-customer small{color:#64748b;font-size:11px}
+.admin-document-import-customer{display:grid;gap:5px;color:#475569;font-size:12px;font-weight:800}
+.admin-document-import-customer select{width:100%;min-width:0;padding:9px;border:1px solid #dbe2ea;border-radius:6px;background:#fff;color:#15243a;font:inherit;font-weight:500}
+.admin-document-import-status{color:#64748b;font-size:12px;line-height:1.4}
+.admin-document-import-status.uploaded{color:#167246}
+.admin-document-import-status.duplicate{color:#8a5a00}
+.admin-document-import-status.failed,.admin-document-import-status.invalid{color:#b42318}
+.admin-document-import-actions{justify-content:flex-end;margin-top:14px}
+@media(max-width:680px){.admin-document-upload{grid-template-columns:1fr}.admin-document-upload small{grid-column:auto}.admin-documents-form{padding:24px 18px}}
+@media(max-width:760px){.admin-document-import-form{padding:24px 18px}.admin-document-import-row{grid-template-columns:1fr}.admin-document-import-summary{align-items:flex-start;flex-direction:column}.admin-document-import-list{max-height:48vh}}
+.admin-finance-imports{display:grid;gap:14px;min-width:0}
+.admin-finance-import-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0}
+.admin-finance-import-header h1{margin:4px 0;font-size:24px}
+.admin-finance-import-picker{position:relative;display:inline-flex;align-items:center;gap:8px;margin:8px 0;padding:10px 14px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#172b42;font-size:13px;font-weight:800;cursor:pointer}
+.admin-finance-import-picker input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.admin-finance-queue{display:grid;gap:10px;margin-top:18px}
+.admin-finance-queue-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-finance-draft{display:grid;gap:14px;padding:14px;border:1px solid #dbe2ea;border-radius:6px;background:#fff}
+.admin-finance-draft-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.admin-finance-draft-head>div{display:grid;gap:4px;min-width:0}
+.admin-finance-draft-head strong{overflow-wrap:anywhere;color:#172b42}
+.admin-finance-draft-head small,.admin-finance-lines summary,.admin-finance-line-source span{color:#64748b;font-size:12px}
+.admin-finance-fields{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px}
+.admin-finance-fields label,.admin-finance-line label{display:grid;gap:5px;color:#475569;font-size:12px;font-weight:800}
+.admin-finance-fields input,.admin-finance-fields select,.admin-finance-line input,.admin-finance-line select{width:100%;min-width:0;box-sizing:border-box;padding:9px 10px;border:1px solid #dbe2ea;border-radius:6px;background:#fff;color:#15243a;font:inherit;font-weight:500}
+.admin-finance-lines{border-top:1px solid #e2e8f0;padding-top:12px}
+.admin-finance-lines summary{cursor:pointer;font-weight:800}
+.admin-finance-line{display:grid;grid-template-columns:minmax(200px,1.4fr) 100px repeat(5,minmax(100px,.7fr));align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid #eef2f6}
+.admin-finance-line-source{display:grid;gap:4px;align-self:center;min-width:0}
+.admin-finance-line-source strong{overflow-wrap:anywhere;color:#334155;font-size:12px;font-weight:600}
+.admin-finance-line-source small{color:#64748b;font-size:11px}
+.admin-finance-line-toggle{display:flex!important;align-items:center;gap:6px;align-self:center;white-space:nowrap}
+.admin-finance-line-toggle input{width:auto!important}
+.admin-finance-line label small{color:#64748b;font-size:10px;font-weight:500}
+.admin-finance-warning{color:#8a5a00;font-size:12px}
+.admin-finance-success{color:#167246;font-size:12px}
+.admin-finance-draft-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px}
+.admin-finance-draft-actions>span{margin-right:auto}
+.admin-finance-report-grid{grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr)}
+.admin-finance-import-list{min-width:0}
+@media(max-width:900px){.admin-finance-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-finance-line{grid-template-columns:minmax(0,1fr) repeat(2,minmax(110px,1fr))}.admin-finance-line-source{grid-column:1/-1}.admin-finance-line-toggle{grid-column:1/-1}.admin-finance-report-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.admin-finance-import-header,.admin-finance-queue-head{align-items:flex-start;flex-direction:column}.admin-finance-import-header .admin-top-actions{width:100%}.admin-finance-fields{grid-template-columns:1fr}.admin-finance-draft{padding:10px}.admin-finance-draft-actions{align-items:stretch;flex-direction:column}.admin-finance-draft-actions .admin-btn{width:100%;justify-content:center}}

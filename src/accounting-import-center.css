@@ -1,0 +1,27 @@
+.accounting-import-center .accounting-import-heading{display:flex;align-items:center;justify-content:space-between}
+.accounting-refresh{width:38px;height:38px;display:grid;place-items:center;border:1px solid #d5dde1;border-radius:8px;background:#fff;color:#26363b;cursor:pointer}
+.accounting-dropzone{position:relative;display:grid;justify-items:center;gap:8px;padding:24px;border:1px dashed #98a9ae;border-radius:10px;background:#f6f8f8;color:#30444a;text-align:center;overflow:hidden}
+.accounting-dropzone strong{font-size:15px}
+.accounting-dropzone small{color:#66757d}
+.accounting-dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.accounting-import-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0}
+.accounting-import-controls label{display:grid;gap:6px;color:#596b71;font-size:13px;font-weight:700}
+.accounting-import-controls select{min-height:40px;min-width:150px;padding:0 10px;border:1px solid #d5dde1;border-radius:8px;background:#fff;color:#172126}
+.portal-import-primary,.accounting-import-row button{min-height:40px;padding:0 14px;border:0;border-radius:8px;background:#176b62;color:#fff;font-weight:700;cursor:pointer}
+.portal-import-primary:disabled,.accounting-import-row button:disabled{opacity:.55;cursor:not-allowed}
+.accounting-file-queue{display:grid;gap:6px;margin:12px 0}
+.accounting-file-queue>div{display:grid;grid-template-columns:18px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid #edf1f2}
+.accounting-file-queue span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.accounting-file-queue small{color:#718087}
+.accounting-file-queue button{border:0;background:none;color:#a03d32;cursor:pointer}
+.accounting-import-list{margin-top:24px;border-top:1px solid #e7edef;padding-top:16px}
+.accounting-import-list h3{margin:0 0 8px;font-size:16px}
+.accounting-import-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:13px 0;border-top:1px solid #edf1f2}
+.accounting-import-row strong,.accounting-import-row small{display:block}
+.accounting-import-row small{margin-top:4px;color:#718087}
+.accounting-import-row>small{color:#718087}
+.accounting-import-row button{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.accounting-state{padding:5px 8px;border-radius:6px;background:#edf1f2;color:#506067;font-size:12px;font-weight:700;text-transform:capitalize;white-space:nowrap}
+.accounting-state.success{background:#e6f3ef;color:#176b62}
+.portal-error{padding:11px 13px;border:1px solid #e6b9b2;border-radius:8px;background:#fff5f3;color:#8f2d22}
+@media(max-width:640px){.accounting-import-controls{align-items:stretch;flex-direction:column}.accounting-import-controls select,.portal-import-primary{width:100%}.accounting-import-row{grid-template-columns:minmax(0,1fr) auto}.accounting-import-row>button,.accounting-import-row>small{grid-column:1/-1;justify-self:start}.accounting-file-queue>div{grid-template-columns:18px minmax(0,1fr) auto}.accounting-file-queue small{display:none}}
